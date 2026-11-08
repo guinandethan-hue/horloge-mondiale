@@ -5,14 +5,57 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Horloge mondiale</title>
 <link rel="stylesheet" href="leaflet.css">
+
 <style>
+#deviceZone {
+  background: #0f766e;
+}
+
+.leaflet-tooltip.tz-label {
+  display: none;
+}
+
+.show-tz-labels .leaflet-tooltip.tz-label {
+  display: block;
+}
+
+.about {
+  margin: 16px 20px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  form label,
+  form select,
+  form input,
+  form button {
+    width: 100%;
+  }
+
+  #map {
+    min-height: 360px;
+  }
+}
+</style>
+<style>
+  
   * { box-sizing: border-box; }
   body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #f4f6f9; color: #222; }
   header { background: #1f2937; color: #fff; padding: 14px 20px; }
   header h1 { margin: 0 0 10px; font-size: 1.4rem; }
   form { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
   form label { display: flex; flex-direction: column; font-size: .85rem; gap: 4px; }
-  select, input[type="time"] { padding: 7px 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; min-width: 160px; }
+  select, input[type="time"], input[type="date"] {
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  min-width: 160px;
+}
+
   button { padding: 8px 16px; border: none; border-radius: 6px; background: #3b82f6; color: #fff; font-size: 1rem; cursor: pointer; }
   button.secondary { background: #6b7280; }
   button:hover { filter: brightness(1.1); }
@@ -46,18 +89,30 @@
 <header>
   <h1>🌍 Horloge mondiale</h1>
   <form id="form">
-    <label>Pays de référence <select id="country"></select></label>
-    <label>Heure dans ce pays <input type="time" id="time" required></label>
-    <label>Affichage
-      <select id="mode">
-        <option value="auto">Auto (fuseaux détaillés en zoomant)</option>
-        <option value="country">Pays (heure de la capitale)</option>
-        <option value="tz">Fuseaux horaires détaillés</option>
-      </select>
-    </label>
-    <button type="submit">Afficher</button>
-    <button type="button" class="secondary" id="reset">Revenir à l'heure réelle</button>
-  </form>
+  <label>Pays de référence
+    <select id="country"></select>
+  </label>
+
+  <label>Date de référence
+    <input type="date" id="date" required>
+  </label>
+
+  <label>Heure de référence
+    <input type="time" id="time" required>
+  </label>
+
+  <label>Affichage
+    <select id="mode">
+      <option value="auto">Auto (fuseaux détaillés en zoomant)</option>
+      <option value="country">Pays (heure de la capitale)</option>
+      <option value="tz">Fuseaux horaires détaillés</option>
+    </select>
+  </label>
+
+  <button type="submit">Afficher</button>
+  <button type="button" id="deviceZone">Utiliser le fuseau de cet appareil</button>
+  <button type="button" class="secondary" id="reset">Revenir à l’heure réelle</button>
+</form>
   <p id="status">Chargement de la carte…</p>
   <p id="tzstatus"></p>
 </header>
@@ -69,6 +124,25 @@
   <input id="search" type="search" placeholder="Rechercher un pays…">
   <div id="list"></div>
 </section>
+
+<section class="about">
+  <h2>À propos</h2>
+  <p>
+    Horloge mondiale affiche les heures locales à partir des fuseaux horaires
+    de l’appareil et des données de la carte intégrées au projet.
+    Aucune position GPS n’est nécessaire.
+  </p>
+  <p>
+    Les changements d’heure sont calculés à partir des fuseaux horaires
+    disponibles dans le navigateur. Les cartes et frontières sont simplifiées :
+    utilise le survol d’une zone pour voir son fuseau et son heure.
+  </p>
+  <p>
+    Bibliothèques et données : Leaflet, Natural Earth et world.geo.json.
+    La carte de fond et les données locales ne nécessitent pas de clé API.
+  </p>
+</section>
+
 
 <script src="leaflet.js"></script>
 <script>

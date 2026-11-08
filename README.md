@@ -1,37 +1,30 @@
 # 🌍 Horloge mondiale
 
-Application hors-ligne qui affiche une carte du monde avec l'heure de chaque pays
-par rapport à un pays et une heure de référence. En zoomant, la carte bascule sur
-les vrais fuseaux horaires (États-Unis, Russie, Canada… découpés par zone).
-L'heure se met à jour automatiquement chaque minute.
+Une application hors ligne pour comparer l’heure dans les pays et les fuseaux horaires du monde. Choisis un pays — ou clique sur un fuseau détaillé de la carte — puis indique une date et une heure de référence.
 
-## Télécharger
+## Télécharger pour Windows
 
-➡️[Télécharger l’installateur Windows](https://github.com/guinandethan-hue/horloge-mondiale/releases/latest)
+➡️ [Télécharger la dernière version](https://github.com/guinandethan-hue/horloge-mondiale/releases/latest)
+
+Dans la Release, télécharge le fichier **Setup `.exe`** pour installer l’application. L’installation crée des raccourcis et l’application peut ensuite être désinstallée depuis **Paramètres Windows → Applications installées**.
 
 ## Fonctionnalités
 
-- Choix d'un pays de référence et d'une heure (ou heure réelle)
-- Carte colorée selon le décalage horaire, heure affichée sur chaque pays/fuseau
-- Vue détaillée des fuseaux au zoom (données Natural Earth)
-- Gestion automatique de l'heure d'été (fuseaux IANA)
-- Liste de tous les pays triée par décalage, avec recherche
-- 100 % hors-ligne, disponible en `.exe` portable (Electron)
+- Choisir un pays et une date/heure de référence
+- Utiliser le fuseau horaire configuré sur l’appareil
+- Cliquer sur un fuseau détaillé de la carte pour en faire la référence
+- Voir les heures locales, les dates et les écarts par rapport à la référence
+- Explorer les fuseaux des grands pays en zoomant
+- Rechercher un pays dans la liste
+- Utiliser la carte sans connexion après installation
 
-## Lancer le site dans le navigateur
+> Les pays qui ont plusieurs fuseaux sont représentés par leurs zones horaires dans la vue détaillée. Les données géographiques peuvent comporter des simplifications cartographiques.
 
-Ouvrir `index.html` (tous les fichiers nécessaires sont dans le dépôt).
+## Lancer et construire le projet
 
-## Lancer / construire l'application Electron
+Prérequis : Node.js et npm.
 
 ```bash
 npm install
-npm start        # ouvre l'application
-npm run build    # crée dist/Horloge mondiale 1.0.0.exe
-```
-
-## Données
-
-- Frontières : [johan/world.geo.json](https://github.com/johan/world.geo.json)
-- Fuseaux horaires : [Natural Earth](https://www.naturalearthdata.com/) (`ne_10m_time_zones`)
-- Carte : [Leaflet](https://leafletjs.com/)
+npm start
+npm run build
