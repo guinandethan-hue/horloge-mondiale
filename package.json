@@ -1,0 +1,36 @@
+{
+  "name": "horloge-mondiale",
+  "productName": "Horloge mondiale",
+  "version": "1.0.0",
+  "description": "Carte mondiale des fuseaux horaires",
+  "author": "User",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^45.2.3",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "fr.ethan.horlogemondiale",
+    "productName": "Horloge mondiale",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "index.html",
+      "main.js",
+      "leaflet.js",
+      "leaflet.css",
+      "countries.geo.js",
+      "timezones.geo.js"
+    ],
+    "win": {
+  "target": "portable",
+  "icon": "PDP.ico"
+}
+
+  }
+}

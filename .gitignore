@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*.geojson
+countries.geo.json
+.DS_Store
+Thumbs.db

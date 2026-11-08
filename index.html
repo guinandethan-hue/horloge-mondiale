@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Horloge mondiale</title>
+<link rel="stylesheet" href="leaflet.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #f4f6f9; color: #222; }
+  header { background: #1f2937; color: #fff; padding: 14px 20px; }
+  header h1 { margin: 0 0 10px; font-size: 1.4rem; }
+  form { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+  form label { display: flex; flex-direction: column; font-size: .85rem; gap: 4px; }
+  select, input[type="time"] { padding: 7px 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; min-width: 160px; }
+  button { padding: 8px 16px; border: none; border-radius: 6px; background: #3b82f6; color: #fff; font-size: 1rem; cursor: pointer; }
+  button.secondary { background: #6b7280; }
+  button:hover { filter: brightness(1.1); }
+  #status { margin: 10px 0 0; font-size: .95rem; color: #d1d5db; }
+  #tzstatus { font-size: .85rem; color: #fbbf24; }
+  #map { height: 65vh; min-height: 420px; background: #a9d3ee; }
+  .leaflet-tooltip.time-label, .leaflet-tooltip.tz-label { background: transparent; border: none; box-shadow: none; font-weight: 700; font-size: 12px; color: #111; text-shadow: 0 0 3px #fff, 0 0 3px #fff; text-align: center; line-height: 1.15; }
+  .leaflet-tooltip.time-label::before, .leaflet-tooltip.tz-label::before { display: none; }
+  .leaflet-tooltip.time-label { display: none; }
+  .show-labels .leaflet-tooltip.time-label { display: block; }
+  .tz-label small { font-weight: 500; font-size: 10px; color: #333; }
+  .info { background: rgba(255,255,255,.95); padding: 8px 12px; border-radius: 6px; box-shadow: 0 1px 5px rgba(0,0,0,.3); font-size: .9rem; min-width: 200px; max-width: 260px; }
+  .info b { font-size: 1.05rem; }
+  .legend { background: rgba(255,255,255,.95); padding: 8px 12px; border-radius: 6px; box-shadow: 0 1px 5px rgba(0,0,0,.3); font-size: .8rem; }
+  .legend .bar { height: 12px; width: 220px; border-radius: 3px; margin: 4px 0; background: linear-gradient(to right, hsl(240,70%,55%), hsl(120,70%,55%) 46%, hsl(0,70%,55%)); }
+  .legend .scale { display: flex; justify-content: space-between; }
+  section { padding: 16px 20px; }
+  section h2 { font-size: 1.1rem; margin: 0 0 10px; }
+  #search { width: 100%; max-width: 320px; padding: 8px 10px; border-radius: 6px; border: 1px solid #ccc; margin-bottom: 12px; font-size: 1rem; }
+  #list { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 8px; }
+  .card { background: #fff; border-radius: 8px; padding: 8px 10px; border-left: 6px solid #ccc; box-shadow: 0 1px 2px rgba(0,0,0,.08); cursor: pointer; }
+  .card:hover { box-shadow: 0 2px 6px rgba(0,0,0,.18); }
+  .card.ref { outline: 2px solid #111; }
+  .card .name { font-size: .85rem; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .time { font-size: 1.35rem; font-weight: 700; }
+  .card .diff { font-size: .8rem; color: #666; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌍 Horloge mondiale</h1>
+  <form id="form">
+    <label>Pays de référence <select id="country"></select></label>
+    <label>Heure dans ce pays <input type="time" id="time" required></label>
+    <label>Affichage
+      <select id="mode">
+        <option value="auto">Auto (fuseaux détaillés en zoomant)</option>
+        <option value="country">Pays (heure de la capitale)</option>
+        <option value="tz">Fuseaux horaires détaillés</option>
+      </select>
+    </label>
+    <button type="submit">Afficher</button>
+    <button type="button" class="secondary" id="reset">Revenir à l'heure réelle</button>
+  </form>
+  <p id="status">Chargement de la carte…</p>
+  <p id="tzstatus"></p>
+</header>
+
+<div id="map"></div>
+
+<section>
+  <h2>Tous les pays (triés par décalage)</h2>
+  <input id="search" type="search" placeholder="Rechercher un pays…">
+  <div id="list"></div>
+</section>
+
+<script src="leaflet.js"></script>
+<script>
+window.addEventListener('error', e => {
+  const s = document.getElementById('status');
+  if (s && !/geo\.js/.test(e.filename || '')) s.textContent = '❌ ' + (e.message || 'Erreur') + (e.filename ? ' — ' + e.filename.split('/').pop() : '');
+});
+</script>
+<script src="countries.geo.js"></script>
+<script src="timezones.geo.js"></script>
+<script>
+// Code ISO3 -> [Nom en français, fuseau IANA de la capitale]
+const COUNTRIES = {
+AFG:["Afghanistan","Asia/Kabul"],AGO:["Angola","Africa/Luanda"],ALB:["Albanie","Europe/Tirane"],ARE:["Émirats arabes unis","Asia/Dubai"],
+ARG:["Argentine","America/Argentina/Buenos_Aires"],ARM:["Arménie","Asia/Yerevan"],ATF:["Terres australes françaises","Indian/Kerguelen"],
+AUS:["Australie (Sydney)","Australia/Sydney"],AUT:["Autriche","Europe/Vienna"],AZE:["Azerbaïdjan","Asia/Baku"],BDI:["Burundi","Africa/Bujumbura"],
+BEL:["Belgique","Europe/Brussels"],BEN:["Bénin","Africa/Porto-Novo"],BFA:["Burkina Faso","Africa/Ouagadougou"],BGD:["Bangladesh","Asia/Dhaka"],
+BGR:["Bulgarie","Europe/Sofia"],BHS:["Bahamas","America/Nassau"],BIH:["Bosnie-Herzégovine","Europe/Sarajevo"],BLR:["Biélorussie","Europe/Minsk"],
+BLZ:["Belize","America/Belize"],BOL:["Bolivie","America/La_Paz"],BRA:["Brésil (Brasilia)","America/Sao_Paulo"],BRN:["Brunei","Asia/Brunei"],
+BTN:["Bhoutan","Asia/Thimphu"],BWA:["Botswana","Africa/Gaborone"],CAF:["Centrafrique","Africa/Bangui"],CAN:["Canada (Ottawa)","America/Toronto"],
+CHE:["Suisse","Europe/Zurich"],CHL:["Chili","America/Santiago"],CHN:["Chine","Asia/Shanghai"],CIV:["Côte d'Ivoire","Africa/Abidjan"],
+CMR:["Cameroun","Africa/Douala"],COD:["RD Congo (Kinshasa)","Africa/Kinshasa"],COG:["Congo","Africa/Brazzaville"],COL:["Colombie","America/Bogota"],
+CRI:["Costa Rica","America/Costa_Rica"],CUB:["Cuba","America/Havana"],CYP:["Chypre","Asia/Nicosia"],CZE:["Tchéquie","Europe/Prague"],
+DEU:["Allemagne","Europe/Berlin"],DJI:["Djibouti","Africa/Djibouti"],DNK:["Danemark","Europe/Copenhagen"],DOM:["République dominicaine","America/Santo_Domingo"],
+DZA:["Algérie","Africa/Algiers"],ECU:["Équateur","America/Guayaquil"],EGY:["Égypte","Africa/Cairo"],ERI:["Érythrée","Africa/Asmara"],
+ESH:["Sahara occidental","Africa/El_Aaiun"],ESP:["Espagne","Europe/Madrid"],EST:["Estonie","Europe/Tallinn"],ETH:["Éthiopie","Africa/Addis_Ababa"],
+FIN:["Finlande","Europe/Helsinki"],FJI:["Fidji","Pacific/Fiji"],FLK:["Îles Malouines","Atlantic/Stanley"],FRA:["France","Europe/Paris"],
+GAB:["Gabon","Africa/Libreville"],GBR:["Royaume-Uni","Europe/London"],GEO:["Géorgie","Asia/Tbilisi"],GHA:["Ghana","Africa/Accra"],
+GIN:["Guinée","Africa/Conakry"],GMB:["Gambie","Africa/Banjul"],GNB:["Guinée-Bissau","Africa/Bissau"],GNQ:["Guinée équatoriale","Africa/Malabo"],
+GRC:["Grèce","Europe/Athens"],GRL:["Groenland","America/Nuuk"],GTM:["Guatemala","America/Guatemala"],GUY:["Guyana","America/Guyana"],
+HND:["Honduras","America/Tegucigalpa"],HRV:["Croatie","Europe/Zagreb"],HTI:["Haïti","America/Port-au-Prince"],HUN:["Hongrie","Europe/Budapest"],
+IDN:["Indonésie (Jakarta)","Asia/Jakarta"],IND:["Inde","Asia/Kolkata"],IRL:["Irlande","Europe/Dublin"],IRN:["Iran","Asia/Tehran"],
+IRQ:["Irak","Asia/Baghdad"],ISL:["Islande","Atlantic/Reykjavik"],ISR:["Israël","Asia/Jerusalem"],ITA:["Italie","Europe/Rome"],
+JAM:["Jamaïque","America/Jamaica"],JOR:["Jordanie","Asia/Amman"],JPN:["Japon","Asia/Tokyo"],KAZ:["Kazakhstan (Almaty)","Asia/Almaty"],
+KEN:["Kenya","Africa/Nairobi"],KGZ:["Kirghizistan","Asia/Bishkek"],KHM:["Cambodge","Asia/Phnom_Penh"],KOR:["Corée du Sud","Asia/Seoul"],
+KWT:["Koweït","Asia/Kuwait"],LAO:["Laos","Asia/Vientiane"],LBN:["Liban","Asia/Beirut"],LBR:["Liberia","Africa/Monrovia"],
+LBY:["Libye","Africa/Tripoli"],LKA:["Sri Lanka","Asia/Colombo"],LSO:["Lesotho","Africa/Maseru"],LTU:["Lituanie","Europe/Vilnius"],
+LUX:["Luxembourg","Europe/Luxembourg"],LVA:["Lettonie","Europe/Riga"],MAR:["Maroc","Africa/Casablanca"],MDA:["Moldavie","Europe/Chisinau"],
+MDG:["Madagascar","Indian/Antananarivo"],MEX:["Mexique","America/Mexico_City"],MKD:["Macédoine du Nord","Europe/Skopje"],MLI:["Mali","Africa/Bamako"],
+MMR:["Birmanie","Asia/Yangon"],MNE:["Monténégro","Europe/Podgorica"],MNG:["Mongolie","Asia/Ulaanbaatar"],MOZ:["Mozambique","Africa/Maputo"],
+MRT:["Mauritanie","Africa/Nouakchott"],MWI:["Malawi","Africa/Blantyre"],MYS:["Malaisie","Asia/Kuala_Lumpur"],NAM:["Namibie","Africa/Windhoek"],
+NCL:["Nouvelle-Calédonie","Pacific/Noumea"],NER:["Niger","Africa/Niamey"],NGA:["Nigeria","Africa/Lagos"],NIC:["Nicaragua","America/Managua"],
+NLD:["Pays-Bas","Europe/Amsterdam"],NOR:["Norvège","Europe/Oslo"],NPL:["Népal","Asia/Kathmandu"],NZL:["Nouvelle-Zélande","Pacific/Auckland"],
+OMN:["Oman","Asia/Muscat"],PAK:["Pakistan","Asia/Karachi"],PAN:["Panama","America/Panama"],PER:["Pérou","America/Lima"],
+PHL:["Philippines","Asia/Manila"],PNG:["Papouasie-Nouvelle-Guinée","Pacific/Port_Moresby"],POL:["Pologne","Europe/Warsaw"],PRI:["Porto Rico","America/Puerto_Rico"],
+PRK:["Corée du Nord","Asia/Pyongyang"],PRT:["Portugal","Europe/Lisbon"],PRY:["Paraguay","America/Asuncion"],PSE:["Palestine","Asia/Hebron"],
+QAT:["Qatar","Asia/Qatar"],ROU:["Roumanie","Europe/Bucharest"],RUS:["Russie (Moscou)","Europe/Moscow"],RWA:["Rwanda","Africa/Kigali"],
+SAU:["Arabie saoudite","Asia/Riyadh"],SDN:["Soudan","Africa/Khartoum"],SEN:["Sénégal","Africa/Dakar"],SLB:["Îles Salomon","Pacific/Guadalcanal"],
+SLE:["Sierra Leone","Africa/Freetown"],SLV:["Salvador","America/El_Salvador"],SOM:["Somalie","Africa/Mogadishu"],SRB:["Serbie","Europe/Belgrade"],
+SSD:["Soudan du Sud","Africa/Juba"],SUR:["Suriname","America/Paramaribo"],SVK:["Slovaquie","Europe/Bratislava"],SVN:["Slovénie","Europe/Ljubljana"],
+SWE:["Suède","Europe/Stockholm"],SWZ:["Eswatini","Africa/Mbabane"],SYR:["Syrie","Asia/Damascus"],TCD:["Tchad","Africa/Ndjamena"],
+TGO:["Togo","Africa/Lome"],THA:["Thaïlande","Asia/Bangkok"],TJK:["Tadjikistan","Asia/Dushanbe"],TKM:["Turkménistan","Asia/Ashgabat"],
+TLS:["Timor oriental","Asia/Dili"],TTO:["Trinité-et-Tobago","America/Port_of_Spain"],TUN:["Tunisie","Africa/Tunis"],TUR:["Turquie","Europe/Istanbul"],
+TWN:["Taïwan","Asia/Taipei"],TZA:["Tanzanie","Africa/Dar_es_Salaam"],UGA:["Ouganda","Africa/Kampala"],UKR:["Ukraine","Europe/Kyiv"],
+URY:["Uruguay","America/Montevideo"],USA:["États-Unis (Washington)","America/New_York"],UZB:["Ouzbékistan","Asia/Tashkent"],VEN:["Venezuela","America/Caracas"],
+VNM:["Vietnam","Asia/Ho_Chi_Minh"],VUT:["Vanuatu","Pacific/Efate"],YEM:["Yémen","Asia/Aden"],ZAF:["Afrique du Sud","Africa/Johannesburg"],
+ZMB:["Zambie","Africa/Lusaka"],ZWE:["Zimbabwe","Africa/Harare"]
+};
+
+function tzValid(tz) { try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); return true; } catch { return false; } }
+for (const iso of Object.keys(COUNTRIES)) if (!tzValid(COUNTRIES[iso][1])) delete COUNTRIES[iso];
+
+// ---------- État ----------
+const DETAIL_ZOOM = 3;          // à partir de ce zoom, on passe aux fuseaux détaillés (mode auto)
+let refIso = 'FRA';
+let delta = 0;
+let now = new Date();
+let mode = 'auto';
+let geoLayer = null, tzLayer = null, borderLayer = null;
+const layersByIso = {};
+const tzLayers = [];
+let lastMinute = -1;
+
+const pad = n => String(n).padStart(2, '0');
+const virtualNow = () => new Date(Date.now() + delta);
+
+// ---------- Calculs horaires ----------
+// Un "descripteur de zone" est soit { tz: 'America/Chicago' } (fuseau IANA, gère l'heure d'été),
+// soit { fixed: -3.5 } (décalage UTC fixe en heures, pour les zones sans nom IANA valide).
+function parts(date, tz) {
+  const p = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+  }).formatToParts(date);
+  const o = {};
+  for (const x of p) if (x.type !== 'literal') o[x.type] = +x.value;
+  return o;
+}
+function localParts(date, desc) {
+  if (desc.tz) return parts(date, desc.tz);
+  const d = new Date(Math.floor(date.getTime() / 60000) * 60000 + desc.fixed * 3600000);
+  return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), hour: d.getUTCHours(), minute: d.getUTCMinutes() };
+}
+function offsetMin(date, tz) {
+  const d = new Date(Math.floor(date.getTime() / 60000) * 60000);
+  const o = parts(d, tz);
+  return Math.round((Date.UTC(o.year, o.month - 1, o.day, o.hour, o.minute) - d.getTime()) / 60000);
+}
+const offsetOf = (date, desc) => desc.tz ? offsetMin(date, desc.tz) : Math.round(desc.fixed * 60);
+
+function fmtUtc(min) {
+  const a = Math.abs(min);
+  return `UTC${min < 0 ? '−' : '+'}${pad(Math.floor(a / 60))}:${pad(a % 60)}`;
+}
+function formatDiff(h) {
+  if (h === 0) return 'même heure';
+  const abs = Math.abs(h);
+  const hh = Math.floor(abs), mm = Math.round((abs - hh) * 60);
+  return (h > 0 ? '+' : '−') + hh + 'h' + (mm ? pad(mm) : '');
+}
+function colorFor(diff) {
+  const hue = Math.max(0, Math.min(240, 120 - diff * 10));
+  return `hsl(${hue},70%,55%)`;
+}
+
+function infoFor(desc, name) {
+  const refDesc = { tz: COUNTRIES[refIso][1] };
+  const o = localParts(now, desc), r = localParts(now, refDesc);
+  const off = offsetOf(now, desc);
+  const diff = (off - offsetOf(now, refDesc)) / 60;
+  const k = o.year * 10000 + o.month * 100 + o.day;
+  const rk = r.year * 10000 + r.month * 100 + r.day;
+  const day = k > rk ? 'lendemain' : k < rk ? 'veille' : '';
+  return { name, tz: desc.tz || 'décalage fixe', utc: fmtUtc(off), time: pad(o.hour) + ':' + pad(o.minute), diff, day,
+           date: `${pad(o.day)}/${pad(o.month)}/${o.year}` };
+}
+function info(iso) {
+  const [name, tz] = COUNTRIES[iso];
+  return Object.assign(infoFor({ tz }, name), { iso });
+}
+
+// ---------- Carte ----------
+const map = L.map('map', {
+  minZoom: 1, maxZoom: 7,
+  maxBounds: [[-85, -200], [85, 200]], maxBoundsViscosity: 0.8,
+  attributionControl: false
+}).setView([25, 10], 2);
+L.control.attribution({ prefix: 'Frontières & fuseaux : Natural Earth · Carte : Leaflet' }).addTo(map);
+map.createPane('tzPane').style.zIndex = 390;       // fuseaux sous les frontières
+map.createPane('borderPane').style.zIndex = 410;   // frontières au-dessus (non cliquables)
+
+function styleFor(feature) {
+  const iso = feature.id;
+  if (!COUNTRIES[iso]) return { fillColor: '#cfd4d9', color: '#fff', weight: .5, fillOpacity: 1 };
+  const isRef = iso === refIso;
+  return { fillColor: colorFor(info(iso).diff), color: isRef ? '#111' : '#fff', weight: isRef ? 3 : .6, fillOpacity: .9 };
+}
+function tzStyle(feature) {
+  return { fillColor: colorFor(infoFor(feature._desc, '').diff), color: '#fff', weight: .8, fillOpacity: .9 };
+}
+function borderStyle(feature) {
+  const isRef = feature.id === refIso;
+  return { fill: false, color: isRef ? '#111' : '#444', weight: isRef ? 3 : 1, opacity: isRef ? 1 : .7 };
+}
+
+const infoCtl = L.control({ position: 'topright' });
+infoCtl.onAdd = function () { this._div = L.DomUtil.create('div', 'info'); this.update(); return this._div; };
+infoCtl.update = function (iso) {
+  if (!iso || !COUNTRIES[iso]) { this._div.innerHTML = 'Survolez un pays ou un fuseau<br><small>Cliquez sur un pays pour en faire la référence</small>'; return; }
+  const i = info(iso);
+  this._div.innerHTML = `<b>${i.name}</b><br>🕒 <b>${i.time}</b> ${i.day ? '(' + i.day + ')' : ''}<br>${i.date}<br><small>${formatDiff(i.diff)} par rapport à ${COUNTRIES[refIso][0]}<br>${i.tz} (${i.utc})</small>`;
+};
+infoCtl.updateZone = function (feature) {
+  const p = feature.properties, i = infoFor(feature._desc, '');
+  const places = (p.places || '').replace(/,\s*/g, ', ');
+  this._div.innerHTML = `<b>Fuseau ${i.utc}</b><br>🕒 <b>${i.time}</b> ${i.day ? '(' + i.day + ')' : ''}<br>${i.date}<br><small>${formatDiff(i.diff)} par rapport à ${COUNTRIES[refIso][0]}<br>${i.tz}${places ? '<br>' + places.slice(0, 120) + (places.length > 120 ? '…' : '') : ''}</small>`;
+};
+infoCtl.addTo(map);
+
+const legend = L.control({ position: 'bottomleft' });
+legend.onAdd = function () {
+  const d = L.DomUtil.create('div', 'legend');
+  d.innerHTML = 'Décalage par rapport au pays de référence<div class="bar"></div><div class="scale"><span>−12h</span><span>0h</span><span>+14h</span></div>';
+  return d;
+};
+legend.addTo(map);
+
+const tooltipHtml = iso => { const i = info(iso); return `${i.name}<br>${i.time}`; };
+const tzTooltipHtml = f => { const i = infoFor(f._desc, ''); return `${i.time}<br><small>${i.utc}</small>`; };
+
+function buildCountries(data) {
+  geoLayer = L.geoJSON(data, {
+    style: styleFor,
+    onEachFeature: (feature, layer) => {
+      const iso = feature.id;
+      if (COUNTRIES[iso]) {
+        layersByIso[iso] = layer;
+        layer.bindTooltip(tooltipHtml(iso), { permanent: true, direction: 'center', className: 'time-label' });
+      }
+      layer.on({
+        mouseover: e => { infoCtl.update(iso); e.target.setStyle({ weight: 2, color: '#333' }); e.target.bringToFront(); },
+        mouseout: e => { infoCtl.update(); geoLayer.resetStyle(e.target); },
+        click: () => { if (COUNTRIES[iso]) setReference(iso); }
+      });
+    }
+  });
+  borderLayer = L.geoJSON(data, { pane: 'borderPane', interactive: false, style: borderStyle });
+}
+
+function buildTimezones(data) {
+  for (const f of data.features) {
+    const p = f.properties || {};
+    f._desc = (p.tz_name1st && tzValid(p.tz_name1st)) ? { tz: p.tz_name1st } : { fixed: Number(p.zone) || 0 };
+  }
+  tzLayer = L.geoJSON(data, {
+    pane: 'tzPane',
+    style: tzStyle,
+    onEachFeature: (feature, layer) => {
+      tzLayers.push(layer);
+      layer.bindTooltip(tzTooltipHtml(feature), { permanent: true, direction: 'center', className: 'tz-label' });
+      layer.on({
+        mouseover: e => { infoCtl.updateZone(feature); e.target.setStyle({ weight: 2.5, color: '#333' }); },
+        mouseout: e => { infoCtl.update(); tzLayer.resetStyle(e.target); }
+      });
+    }
+  });
+}
+
+function detailOn() {
+  return !!tzLayer && (mode === 'tz' || (mode === 'auto' && map.getZoom() >= DETAIL_ZOOM));
+}
+function updateLayers() {
+  if (!geoLayer) return;
+  if (detailOn()) {
+    if (map.hasLayer(geoLayer)) map.removeLayer(geoLayer);
+    if (!map.hasLayer(tzLayer)) tzLayer.addTo(map);
+    if (!map.hasLayer(borderLayer)) borderLayer.addTo(map);
+  } else {
+    if (tzLayer && map.hasLayer(tzLayer)) map.removeLayer(tzLayer);
+    if (borderLayer && map.hasLayer(borderLayer)) map.removeLayer(borderLayer);
+    if (!map.hasLayer(geoLayer)) geoLayer.addTo(map);
+  }
+  map.getContainer().classList.toggle('show-labels', map.getZoom() >= DETAIL_ZOOM);
+}
+map.on('zoomend', updateLayers);
+
+// ---------- Interface ----------
+const selectEl = document.getElementById('country');
+const timeEl = document.getElementById('time');
+const modeEl = document.getElementById('mode');
+const statusEl = document.getElementById('status');
+const listEl = document.getElementById('list');
+const searchEl = document.getElementById('search');
+
+Object.entries(COUNTRIES)
+  .sort((a, b) => a[1][0].localeCompare(b[1][0], 'fr'))
+  .forEach(([iso, [name]]) => {
+    const opt = document.createElement('option');
+    opt.value = iso; opt.textContent = name;
+    selectEl.appendChild(opt);
+  });
+selectEl.value = refIso;
+
+function setReference(iso) { refIso = iso; selectEl.value = iso; refresh(); }
+
+document.getElementById('form').addEventListener('submit', e => {
+  e.preventDefault();
+  refIso = selectEl.value;
+  const [h, m] = timeEl.value.split(':').map(Number);
+  const real = parts(new Date(), COUNTRIES[refIso][1]);
+  let diffMin = (h * 60 + m) - (real.hour * 60 + real.minute);
+  if (diffMin > 720) diffMin -= 1440;
+  if (diffMin < -720) diffMin += 1440;
+  delta = diffMin * 60000;
+  refresh();
+});
+document.getElementById('reset').addEventListener('click', () => { delta = 0; refresh(); });
+modeEl.addEventListener('change', () => { mode = modeEl.value; updateLayers(); });
+searchEl.addEventListener('input', renderList);
+
+function renderList() {
+  const q = searchEl.value.trim().toLowerCase();
+  const items = Object.keys(COUNTRIES).map(info)
+    .filter(i => !q || i.name.toLowerCase().includes(q))
+    .sort((a, b) => a.diff - b.diff || a.name.localeCompare(b.name, 'fr'));
+  listEl.innerHTML = items.map(i => `
+    <div class="card ${i.iso === refIso ? 'ref' : ''}" data-iso="${i.iso}" style="border-left-color:${colorFor(i.diff)}">
+      <div class="name" title="${i.name}">${i.name}</div>
+      <div class="time">${i.time}</div>
+      <div class="diff">${formatDiff(i.diff)}${i.day ? ' · ' + i.day : ''}</div>
+    </div>`).join('');
+}
+listEl.addEventListener('click', e => {
+  const card = e.target.closest('.card');
+  if (card) { setReference(card.dataset.iso); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+});
+
+// ---------- Rafraîchissement ----------
+function refresh() {
+  now = virtualNow();
+  const ref = info(refIso);
+  if (document.activeElement !== timeEl) timeEl.value = ref.time;
+
+  if (geoLayer) {
+    geoLayer.setStyle(styleFor);
+    for (const iso in layersByIso) layersByIso[iso].setTooltipContent(tooltipHtml(iso));
+  }
+  if (borderLayer) borderLayer.setStyle(borderStyle);
+  if (tzLayer) {
+    tzLayer.setStyle(tzStyle);
+    for (const l of tzLayers) l.setTooltipContent(tzTooltipHtml(l.feature));
+  }
+  renderList();
+
+  const simul = delta !== 0
+    ? ` — heure simulée (${formatDiff(delta / 3600000)} par rapport à l'heure réelle)`
+    : ' — heure réelle';
+  statusEl.textContent = `Référence : ${ref.name}, ${ref.time} le ${ref.date}${simul}. Mise à jour automatique chaque minute.`;
+  lastMinute = Math.floor(now.getTime() / 60000);
+}
+// ---------- Chargement des données ----------
+(function () {
+  const st = document.getElementById('status'), tst = document.getElementById('tzstatus');
+  const c = window.WORLD_GEOJSON;
+  if (!c || !c.features) {
+    st.textContent = '❌ countries.geo.js absent ou sans le préfixe "window.WORLD_GEOJSON =" (voir console F12).';
+    return;
+  }
+  const t = window.TZ_GEOJSON;
+  if (t && t.features) buildTimezones(t);
+  else tst.textContent = '⚠ Fuseaux détaillés non chargés : ajoute timezones.geo.js (avec "window.TZ_GEOJSON =" en tête). Les pays utilisent l\'heure de leur capitale.';
+  buildCountries(c);
+  updateLayers();
+  refresh();
+})();
+
+setInterval(() => {
+  if (Math.floor(virtualNow().getTime() / 60000) !== lastMinute) refresh();
+}, 1000);
+</script>
+</body>
+</html>
