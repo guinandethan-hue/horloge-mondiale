@@ -7,7 +7,7 @@ L'heure se met à jour automatiquement chaque minute.
 
 ## Télécharger
 
-➡️ [Dernière version (.exe Windows, aucune installation)](https://github.com/guinandethan-hue/horloge-mondiale/releases/latest)
+➡️[Télécharger l’installateur Windows](https://github.com/guinandethan-hue/horloge-mondiale/releases/latest)
 
 ## Fonctionnalités
 
