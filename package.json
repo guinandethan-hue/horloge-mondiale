@@ -11,10 +11,10 @@
   },
   "devDependencies": {
     "electron": "^45.2.3",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.18.0"
   },
   "build": {
-    "appId": "fr.ethan.horlogemondiale",
+    "appId": "fr.User.horlogemondiale",
     "productName": "Horloge mondiale",
     "directories": {
       "output": "dist"
@@ -25,12 +25,20 @@
       "leaflet.js",
       "leaflet.css",
       "countries.geo.js",
-      "timezones.geo.js"
+      "timezones.geo.js",
+      "PDP.ico"
     ],
     "win": {
-  "target": "portable",
-  "icon": "PDP.ico"
-}
-
+      "target": "nsis",
+      "icon": "PDP.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "installerIcon": "PDP.ico",
+      "uninstallerIcon": "PDP.ico"
+    }
   }
 }
