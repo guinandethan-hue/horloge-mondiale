@@ -1,13 +1,14 @@
 {
   "name": "horloge-mondiale",
   "productName": "Horloge mondiale",
-  "version": "1.0.0",
-  "description": "Carte mondiale des fuseaux horaires",
-  "author": "User",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Horloge mondiale hors ligne avec carte interactive, fuseaux horaires, favoris et export CSV",
+  "author": "Ethan",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win"
+    "build": "electron-builder --win nsis --x64 --publish never"
   },
   "devDependencies": {
     "electron": "^45.2.3",
@@ -16,6 +17,7 @@
   "build": {
     "appId": "fr.User.horlogemondiale",
     "productName": "Horloge mondiale",
+    "asar": true,
     "directories": {
       "output": "dist"
     },
@@ -26,17 +28,20 @@
       "leaflet.css",
       "countries.geo.js",
       "timezones.geo.js",
-      "PDP.ico"
+      "PDP.ico",
+      "images/**/*"
     ],
     "win": {
       "target": "nsis",
       "icon": "PDP.ico"
     },
     "nsis": {
+      "artifactName": "Horloge-mondiale-Setup-${version}.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
+      "shortcutName": "Horloge mondiale",
       "installerIcon": "PDP.ico",
       "uninstallerIcon": "PDP.ico"
     }

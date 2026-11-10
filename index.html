@@ -1,477 +1,3341 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Horloge mondiale</title>
-<link rel="stylesheet" href="leaflet.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<style>
-#deviceZone {
+  <title>Horloge mondiale</title>
+
+  <link rel="stylesheet" href="leaflet.css">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #f4f6f9;
+      color: #222;
+    }
+
+    header {
+      padding: 18px 20px;
+      background: #1f2937;
+      color: #fff;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      font-size: 1.6rem;
+    }
+
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 12px;
+    }
+
+    form label {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 0.85rem;
+    }
+
+    select,
+    input,
+    button {
+      font: inherit;
+    }
+
+    select,
+    input[type="time"],
+    input[type="date"] {
+      min-width: 160px;
+      max-width: 100%;
+      padding: 9px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      background: #fff;
+      color: #111827;
+      font-size: 1rem;
+    }
+
+    #country {
+      max-width: 310px;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: 0;
+      border-radius: 7px;
+      background: #2563eb;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    button:hover {
+      filter: brightness(1.08);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    button.secondary {
+      background: #64748b;
+    }
+
+    #deviceZone {
+      background: #0f766e;
+    }
+
+    :focus-visible {
+      outline: 3px solid #f59e0b;
+      outline-offset: 3px;
+    }
+
+    .form-help {
+      margin: 12px 0 0;
+      color: #cbd5e1;
+      font-size: 0.83rem;
+      line-height: 1.5;
+    }
+
+    #status {
+      margin: 12px 0 0;
+      color: #e2e8f0;
+      line-height: 1.5;
+    }
+
+    #dateFeedback {
+      margin: 10px 0 0;
+      color: #fde68a;
+      line-height: 1.5;
+    }
+
+    #dateFeedback:empty {
+      display: none;
+    }
+
+    #dateFeedback.feedback-error {
+      color: #fecaca;
+      font-weight: 600;
+    }
+
+    #tzstatus {
+      margin: 8px 0 0;
+      color: #fde68a;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    #resourceErrors {
+      margin-top: 12px;
+      padding: 12px 16px;
+      border: 1px solid #fca5a5;
+      border-radius: 8px;
+      background: #450a0a;
+      color: #fff;
+      line-height: 1.5;
+    }
+
+    #resourceErrors ul {
+      margin: 8px 0;
+      padding-left: 22px;
+    }
+
+    #resourceErrors p {
+      margin: 8px 0 0;
+      font-size: 0.9rem;
+    }
+
+    #map {
+      height: 65vh;
+      min-height: 420px;
+      background: #a9d3ee;
+    }
+
+    .map-fallback {
+      padding: 24px;
+      color: #172554;
+    }
+
+    .leaflet-tooltip.time-label,
+    .leaflet-tooltip.tz-label {
+      display: none;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      color: #111;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.2;
+      text-align: center;
+      text-shadow:
+        0 0 3px #fff,
+        0 0 3px #fff,
+        0 0 5px #fff;
+      pointer-events: none;
+    }
+
+    .leaflet-tooltip.time-label::before,
+    .leaflet-tooltip.tz-label::before {
+      display: none;
+    }
+
+    .show-labels .leaflet-tooltip.time-label {
+      display: block;
+    }
+
+    .show-tz-labels .leaflet-tooltip.tz-label {
+      display: block;
+    }
+
+    .tz-label small {
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .info {
+      min-width: 180px;
+      max-width: 270px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.97);
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+      color: #1f2937;
+      font-size: 0.88rem;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .info strong {
+      font-size: 1rem;
+    }
+
+    .info .clock {
+      display: block;
+      margin: 4px 0;
+      font-size: 1.5rem;
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .info .warning {
+      display: block;
+      margin-top: 6px;
+      color: #92400e;
+    }
+
+    .legend {
+      width: 270px;
+      max-width: calc(100vw - 45px);
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.97);
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+      color: #1f2937;
+      font-size: 0.78rem;
+    }
+
+    .legend-key,
+    .legend .scale {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .legend-key {
+      margin-top: 8px;
+      font-size: 0.72rem;
+    }
+
+    .legend .bar {
+      height: 12px;
+      margin: 5px 0;
+      border-radius: 4px;
+      background: linear-gradient(
+        to right,
+        #3b82f6 0%,
+        #e5e7eb 46.15%,
+        #f97316 100%
+      );
+    }
+
+    .legend small {
+      display: block;
+      margin-top: 7px;
+      color: #475569;
+      line-height: 1.4;
+    }
+
+    section {
+      padding: 20px;
+    }
+
+    section h2 {
+      margin: 0 0 12px;
+      font-size: 1.15rem;
+    }
+
+    .section-help {
+      margin: 0 0 14px;
+      color: #475569;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    #search {
+      width: 100%;
+      max-width: 360px;
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      background: #fff;
+      color: #111827;
+    }
+
+    #list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+      gap: 10px;
+    }
+
+    .card {
+      width: 100%;
+      padding: 11px 12px;
+      border-left: 7px solid #cbd5e1;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      color: #1f2937;
+      text-align: left;
+    }
+
+    .card:hover {
+      filter: none;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    .card.ref {
+      outline: 2px solid #0f766e;
+    }
+
+    .card .name,
+    .card .time,
+    .card .diff,
+    .card .date {
+      display: block;
+    }
+
+    .card .name {
+      overflow: hidden;
+      color: #475569;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .card .time {
+      margin: 4px 0;
+      font-size: 1.5rem;
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .card .diff,
+    .card .date {
+      color: #475569;
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+
+    #emptyList {
+      color: #64748b;
+    }
+
+    .about {
+      margin: 0 20px 20px;
+      padding: 18px;
+      border-radius: 10px;
+      background: #fff;
+      line-height: 1.6;
+    }
+
+    .about p {
+      margin: 10px 0;
+    }
+
+    @media (max-width: 700px) {
+      header {
+        padding: 16px;
+      }
+
+      form label,
+      form select,
+      form input,
+      form button {
+        width: 100%;
+      }
+
+      #country {
+        max-width: none;
+      }
+
+      #map {
+        min-height: 420px;
+        height: 70vh;
+      }
+
+      .info {
+        min-width: 150px;
+        max-width: 210px;
+        font-size: 0.8rem;
+      }
+
+      .legend {
+        width: 245px;
+      }
+
+      section {
+        padding: 16px;
+      }
+
+      .about {
+        margin: 0 16px 16px;
+      }
+    }
+    /* ---------- Mode sombre ---------- */
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] body {
+  background: #111827;
+  color: #e5e7eb;
+}
+
+html[data-theme="dark"] header {
+  background: #0b1220;
+}
+
+html[data-theme="dark"] .about,
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .info,
+html[data-theme="dark"] .legend {
+  background: #1f2937;
+  color: #f3f4f6;
+}
+
+html[data-theme="dark"] .card .name,
+html[data-theme="dark"] .card .diff,
+html[data-theme="dark"] .card .date,
+html[data-theme="dark"] .legend small {
+  color: #cbd5e1;
+}
+
+html[data-theme="dark"] .card.ref {
+  outline-color: #f8fafc;
+}
+
+html[data-theme="dark"] .card:hover {
+  background: #293548;
+}
+
+html[data-theme="dark"] select,
+html[data-theme="dark"] input {
+  background: #111827;
+  color: #f3f4f6;
+  border-color: #64748b;
+}
+
+html[data-theme="dark"] input::placeholder {
+  color: #94a3b8;
+}
+
+html[data-theme="dark"] button.secondary {
+  background: #475569;
+}
+
+html[data-theme="dark"] #map {
+  background: #172b3a;
+}
+
+/* Les couleurs des pays restent inchangées :
+   elles représentent les décalages horaires. */
+
+html[data-theme="dark"] .leaflet-control-zoom a {
+  background: #1f2937;
+  color: #f3f4f6;
+  border-color: #475569;
+}
+
+html[data-theme="dark"] .leaflet-control-zoom a:hover {
+  background: #334155;
+}
+
+html[data-theme="dark"] .leaflet-control-attribution {
+  background: rgba(17, 24, 39, 0.95);
+  color: #cbd5e1;
+}
+
+html[data-theme="dark"] .leaflet-control-attribution a {
+  color: #93c5fd;
+}
+
+/* Indicateur visuel : le mode sombre est activé. */
+#themeToggle[aria-pressed="true"] {
   background: #0f766e;
 }
+/* ---------- Bouton de retour sur la carte ---------- */
 
-.leaflet-tooltip.tz-label {
-  display: none;
-}
-
-.show-tz-labels .leaflet-tooltip.tz-label {
+.map-home-control button {
   display: block;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 2px;
+  background: #fff;
+  color: #1f2937;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
 }
 
-.about {
-  margin: 16px 20px;
-  padding: 16px;
+.map-home-control button:hover {
+  background: #f1f5f9;
+  filter: none;
+}
+
+.map-home-control button:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: -3px;
+}
+
+html[data-theme="dark"] .map-home-control button {
+  background: #1f2937;
+  color: #f3f4f6;
+}
+
+html[data-theme="dark"] .map-home-control button:hover {
+  background: #334155;
+}
+
+html[data-theme="dark"] .map-home-control button:focus-visible {
+  outline-color: #93c5fd;
+}
+/* ---------- Carte en plein écran ---------- */
+
+#map:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  min-height: 0;
+  margin: 0;
+  border-radius: 0;
+}
+
+.fullscreen-feedback {
+  max-width: 190px;
+  padding: 8px;
   background: #fff;
-  border-radius: 8px;
+  color: #991b1b;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+html[data-theme="dark"] .fullscreen-feedback {
+  background: #1f2937;
+  color: #fca5a5;
+}
+/* ---------- Navigation au clavier ---------- */
+
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+}
+
+html[data-theme="dark"]
+:where(button, a, input, select, textarea):focus-visible {
+  outline-color: #93c5fd;
+}
+
+.search-keyboard-help {
+  margin: 0 0 12px;
+  color: #475569;
+  font-size: 0.85rem;
   line-height: 1.5;
 }
 
-@media (max-width: 700px) {
-  form label,
-  form select,
-  form input,
-  form button {
-    width: 100%;
-  }
-
-  #map {
-    min-height: 360px;
-  }
+html[data-theme="dark"] .search-keyboard-help {
+  color: #cbd5e1;
 }
-</style>
-<style>
-  
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #f4f6f9; color: #222; }
-  header { background: #1f2937; color: #fff; padding: 14px 20px; }
-  header h1 { margin: 0 0 10px; font-size: 1.4rem; }
-  form { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
-  form label { display: flex; flex-direction: column; font-size: .85rem; gap: 4px; }
-  select, input[type="time"], input[type="date"] {
-  padding: 7px 10px;
+/* ---------- Choix direct du fuseau ---------- */
+
+.zone-picker {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #64748b;
+}
+
+.zone-picker > label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.zone-picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.zone-picker input {
+  width: min(100%, 360px);
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #94a3b8;
   border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 1rem;
-  min-width: 160px;
+  background: #fff;
+  color: #111827;
+  font: inherit;
 }
 
-  button { padding: 8px 16px; border: none; border-radius: 6px; background: #3b82f6; color: #fff; font-size: 1rem; cursor: pointer; }
-  button.secondary { background: #6b7280; }
-  button:hover { filter: brightness(1.1); }
-  #status { margin: 10px 0 0; font-size: .95rem; color: #d1d5db; }
-  #tzstatus { font-size: .85rem; color: #fbbf24; }
-  #map { height: 65vh; min-height: 420px; background: #a9d3ee; }
-  .leaflet-tooltip.time-label, .leaflet-tooltip.tz-label { background: transparent; border: none; box-shadow: none; font-weight: 700; font-size: 12px; color: #111; text-shadow: 0 0 3px #fff, 0 0 3px #fff; text-align: center; line-height: 1.15; }
-  .leaflet-tooltip.time-label::before, .leaflet-tooltip.tz-label::before { display: none; }
-  .leaflet-tooltip.time-label { display: none; }
-  .show-labels .leaflet-tooltip.time-label { display: block; }
-  .tz-label small { font-weight: 500; font-size: 10px; color: #333; }
-  .info { background: rgba(255,255,255,.95); padding: 8px 12px; border-radius: 6px; box-shadow: 0 1px 5px rgba(0,0,0,.3); font-size: .9rem; min-width: 200px; max-width: 260px; }
-  .info b { font-size: 1.05rem; }
-  .legend { background: rgba(255,255,255,.95); padding: 8px 12px; border-radius: 6px; box-shadow: 0 1px 5px rgba(0,0,0,.3); font-size: .8rem; }
-  .legend .bar { height: 12px; width: 220px; border-radius: 3px; margin: 4px 0; background: linear-gradient(to right, hsl(240,70%,55%), hsl(120,70%,55%) 46%, hsl(0,70%,55%)); }
-  .legend .scale { display: flex; justify-content: space-between; }
-  section { padding: 16px 20px; }
-  section h2 { font-size: 1.1rem; margin: 0 0 10px; }
-  #search { width: 100%; max-width: 320px; padding: 8px 10px; border-radius: 6px; border: 1px solid #ccc; margin-bottom: 12px; font-size: 1rem; }
-  #list { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 8px; }
-  .card { background: #fff; border-radius: 8px; padding: 8px 10px; border-left: 6px solid #ccc; box-shadow: 0 1px 2px rgba(0,0,0,.08); cursor: pointer; }
-  .card:hover { box-shadow: 0 2px 6px rgba(0,0,0,.18); }
-  .card.ref { outline: 2px solid #111; }
-  .card .name { font-size: .85rem; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .card .time { font-size: 1.35rem; font-weight: 700; }
-  .card .diff { font-size: .8rem; color: #666; }
-</style>
+.zone-picker-help {
+  max-width: 700px;
+  margin: 8px 0;
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+#preciseZoneFeedback {
+  margin: 8px 0 0;
+  color: #fde68a;
+  font-size: 0.9rem;
+}
+
+html[data-theme="dark"] .zone-picker input {
+  background: #111827;
+  color: #f3f4f6;
+  border-color: #64748b;
+}
+
+  </style>
 </head>
+
 <body>
+  <header>
+    <h1>🌍 Horloge mondiale</h1>
 
-<header>
-  <h1>🌍 Horloge mondiale</h1>
-  <form id="form">
-  <label>Pays de référence
-    <select id="country"></select>
+    <form id="form">
+      <label>
+        Pays ou territoire de référence
+        <select id="country"></select>
+      </label>
+
+      <label>
+        Date de référence
+        <input
+          type="date"
+          id="date"
+          min="1970-01-01"
+          max="2100-12-31"
+          required
+        >
+      </label>
+
+      <label>
+        Heure de référence
+        <input type="time" id="time" step="60" required>
+      </label>
+
+      <label>
+        Si l’heure existe deux fois
+        <select id="dstChoice">
+          <option value="earlier">Première occurrence</option>
+          <option value="later">Seconde occurrence</option>
+        </select>
+      </label>
+
+      <label>
+        Affichage
+        <select id="mode">
+          <option value="auto">Automatique selon le zoom</option>
+          <option value="country">Pays : fuseau représentatif</option>
+          <option value="tz">Fuseaux détaillés</option>
+        </select>
+      </label>
+
+      <button type="submit">Afficher</button>
+
+      <button type="button" id="deviceZone">
+        Utiliser le fuseau de cet appareil
+      </button>
+
+      <button type="button" class="secondary" id="reset">
+        Revenir à l’heure réelle
+      </button>
+      <button
+  type="button"
+  id="themeToggle"
+  class="secondary"
+  aria-pressed="false"
+>
+  🌙 Mode sombre
+</button>
+
+    </form>
+    <div class="zone-picker">
+  <label for="preciseZone">
+    Choisir directement un fuseau de référence
   </label>
 
-  <label>Date de référence
-    <input type="date" id="date" required>
-  </label>
+  <div class="zone-picker-row">
+    <input
+      type="text"
+      id="preciseZone"
+      list="supportedZones"
+      placeholder="Ex. : America/Chicago"
+      autocomplete="off"
+      spellcheck="false"
+      aria-describedby="preciseZoneHelp"
+    >
 
-  <label>Heure de référence
-    <input type="time" id="time" required>
-  </label>
+    <datalist id="supportedZones"></datalist>
 
-  <label>Affichage
-    <select id="mode">
-      <option value="auto">Auto (fuseaux détaillés en zoomant)</option>
-      <option value="country">Pays (heure de la capitale)</option>
-      <option value="tz">Fuseaux horaires détaillés</option>
-    </select>
-  </label>
+    <button type="button" id="applyPreciseZone">
+      Utiliser ce fuseau
+    </button>
+  </div>
 
-  <button type="submit">Afficher</button>
-  <button type="button" id="deviceZone">Utiliser le fuseau de cet appareil</button>
-  <button type="button" class="secondary" id="reset">Revenir à l’heure réelle</button>
-</form>
-  <p id="status">Chargement de la carte…</p>
-  <p id="tzstatus"></p>
-</header>
+  <p id="preciseZoneHelp" class="zone-picker-help">
+    Commence à saisir un nom de ville ou un identifiant de fuseau.
+    Le changement de référence conserve le même instant.
+  </p>
 
-<div id="map"></div>
+  <p
+    id="preciseZoneFeedback"
+    role="status"
+    aria-live="polite"
+  ></p>
+</div>
 
-<section>
-  <h2>Tous les pays (triés par décalage)</h2>
-  <input id="search" type="search" placeholder="Rechercher un pays…">
-  <div id="list"></div>
+    <p class="form-help">
+      Changer de pays ou de fuseau conserve le même instant.
+      « Afficher » applique la date et l’heure saisies.
+      L’horloge continue ensuite d’avancer.
+    </p>
+
+    <p id="dateFeedback" role="status" aria-live="polite"></p>
+    <p id="status">Chargement de l’application…</p>
+    <p id="tzstatus"></p>
+
+    <div id="resourceErrors" role="alert" hidden>
+      <strong>Un problème a été détecté.</strong>
+
+      <ul id="resourceErrorsList"></ul>
+
+      <p>
+        Si un fichier manque dans l’application installée, réinstalle-la.
+        Pour la version du projet, vérifie les fichiers placés à côté
+        de index.html.
+      </p>
+    </div>
+  </header>
+
+  <main>
+    <div
+      id="map"
+      role="region"
+      aria-label="Carte mondiale des heures et des fuseaux horaires"
+    ></div>
+
+    <section aria-labelledby="favoritesTitle">
+  <h2 id="favoritesTitle">⭐ Mes pays favoris</h2>
+
+  <button
+    type="button"
+    id="toggleFavorite"
+    aria-pressed="false"
+  >
+    Ajouter le pays de référence aux favoris
+  </button>
+
+  <p style="font-size: 0.9rem;">
+    Clique sur un favori pour le choisir comme référence.
+    Pour le retirer, sélectionne-le puis utilise le bouton ci-dessus.
+  </p>
+
+  <div id="favoritesList" class="favorites-list"></div>
+
+  <p
+    id="favoritesFeedback"
+    role="status"
+    aria-live="polite"
+    style="font-size: 0.9rem;"
+  ></p>
 </section>
 
-<section class="about">
-  <h2>À propos</h2>
-  <p>
-    Horloge mondiale affiche les heures locales à partir des fuseaux horaires
-    de l’appareil et des données de la carte intégrées au projet.
-    Aucune position GPS n’est nécessaire.
-  </p>
-  <p>
-    Les changements d’heure sont calculés à partir des fuseaux horaires
-    disponibles dans le navigateur. Les cartes et frontières sont simplifiées :
-    utilise le survol d’une zone pour voir son fuseau et son heure.
-  </p>
-  <p>
-    Bibliothèques et données : Leaflet, Natural Earth et world.geo.json.
-    La carte de fond et les données locales ne nécessitent pas de clé API.
-  </p>
-</section>
 
+    <section>
+      <h2>Pays et territoires disponibles</h2>
 
-<script src="leaflet.js"></script>
-<script>
-window.addEventListener('error', e => {
-  const s = document.getElementById('status');
-  if (s && !/geo\.js/.test(e.filename || '')) s.textContent = '❌ ' + (e.message || 'Erreur') + (e.filename ? ' — ' + e.filename.split('/').pop() : '');
-});
-</script>
-<script src="countries.geo.js"></script>
-<script src="timezones.geo.js"></script>
-<script>
-// Code ISO3 -> [Nom en français, fuseau IANA de la capitale]
-const COUNTRIES = {
-AFG:["Afghanistan","Asia/Kabul"],AGO:["Angola","Africa/Luanda"],ALB:["Albanie","Europe/Tirane"],ARE:["Émirats arabes unis","Asia/Dubai"],
-ARG:["Argentine","America/Argentina/Buenos_Aires"],ARM:["Arménie","Asia/Yerevan"],ATF:["Terres australes françaises","Indian/Kerguelen"],
-AUS:["Australie (Sydney)","Australia/Sydney"],AUT:["Autriche","Europe/Vienna"],AZE:["Azerbaïdjan","Asia/Baku"],BDI:["Burundi","Africa/Bujumbura"],
-BEL:["Belgique","Europe/Brussels"],BEN:["Bénin","Africa/Porto-Novo"],BFA:["Burkina Faso","Africa/Ouagadougou"],BGD:["Bangladesh","Asia/Dhaka"],
-BGR:["Bulgarie","Europe/Sofia"],BHS:["Bahamas","America/Nassau"],BIH:["Bosnie-Herzégovine","Europe/Sarajevo"],BLR:["Biélorussie","Europe/Minsk"],
-BLZ:["Belize","America/Belize"],BOL:["Bolivie","America/La_Paz"],BRA:["Brésil (Brasilia)","America/Sao_Paulo"],BRN:["Brunei","Asia/Brunei"],
-BTN:["Bhoutan","Asia/Thimphu"],BWA:["Botswana","Africa/Gaborone"],CAF:["Centrafrique","Africa/Bangui"],CAN:["Canada (Ottawa)","America/Toronto"],
-CHE:["Suisse","Europe/Zurich"],CHL:["Chili","America/Santiago"],CHN:["Chine","Asia/Shanghai"],CIV:["Côte d'Ivoire","Africa/Abidjan"],
-CMR:["Cameroun","Africa/Douala"],COD:["RD Congo (Kinshasa)","Africa/Kinshasa"],COG:["Congo","Africa/Brazzaville"],COL:["Colombie","America/Bogota"],
-CRI:["Costa Rica","America/Costa_Rica"],CUB:["Cuba","America/Havana"],CYP:["Chypre","Asia/Nicosia"],CZE:["Tchéquie","Europe/Prague"],
-DEU:["Allemagne","Europe/Berlin"],DJI:["Djibouti","Africa/Djibouti"],DNK:["Danemark","Europe/Copenhagen"],DOM:["République dominicaine","America/Santo_Domingo"],
-DZA:["Algérie","Africa/Algiers"],ECU:["Équateur","America/Guayaquil"],EGY:["Égypte","Africa/Cairo"],ERI:["Érythrée","Africa/Asmara"],
-ESH:["Sahara occidental","Africa/El_Aaiun"],ESP:["Espagne","Europe/Madrid"],EST:["Estonie","Europe/Tallinn"],ETH:["Éthiopie","Africa/Addis_Ababa"],
-FIN:["Finlande","Europe/Helsinki"],FJI:["Fidji","Pacific/Fiji"],FLK:["Îles Malouines","Atlantic/Stanley"],FRA:["France","Europe/Paris"],
-GAB:["Gabon","Africa/Libreville"],GBR:["Royaume-Uni","Europe/London"],GEO:["Géorgie","Asia/Tbilisi"],GHA:["Ghana","Africa/Accra"],
-GIN:["Guinée","Africa/Conakry"],GMB:["Gambie","Africa/Banjul"],GNB:["Guinée-Bissau","Africa/Bissau"],GNQ:["Guinée équatoriale","Africa/Malabo"],
-GRC:["Grèce","Europe/Athens"],GRL:["Groenland","America/Nuuk"],GTM:["Guatemala","America/Guatemala"],GUY:["Guyana","America/Guyana"],
-HND:["Honduras","America/Tegucigalpa"],HRV:["Croatie","Europe/Zagreb"],HTI:["Haïti","America/Port-au-Prince"],HUN:["Hongrie","Europe/Budapest"],
-IDN:["Indonésie (Jakarta)","Asia/Jakarta"],IND:["Inde","Asia/Kolkata"],IRL:["Irlande","Europe/Dublin"],IRN:["Iran","Asia/Tehran"],
-IRQ:["Irak","Asia/Baghdad"],ISL:["Islande","Atlantic/Reykjavik"],ISR:["Israël","Asia/Jerusalem"],ITA:["Italie","Europe/Rome"],
-JAM:["Jamaïque","America/Jamaica"],JOR:["Jordanie","Asia/Amman"],JPN:["Japon","Asia/Tokyo"],KAZ:["Kazakhstan (Almaty)","Asia/Almaty"],
-KEN:["Kenya","Africa/Nairobi"],KGZ:["Kirghizistan","Asia/Bishkek"],KHM:["Cambodge","Asia/Phnom_Penh"],KOR:["Corée du Sud","Asia/Seoul"],
-KWT:["Koweït","Asia/Kuwait"],LAO:["Laos","Asia/Vientiane"],LBN:["Liban","Asia/Beirut"],LBR:["Liberia","Africa/Monrovia"],
-LBY:["Libye","Africa/Tripoli"],LKA:["Sri Lanka","Asia/Colombo"],LSO:["Lesotho","Africa/Maseru"],LTU:["Lituanie","Europe/Vilnius"],
-LUX:["Luxembourg","Europe/Luxembourg"],LVA:["Lettonie","Europe/Riga"],MAR:["Maroc","Africa/Casablanca"],MDA:["Moldavie","Europe/Chisinau"],
-MDG:["Madagascar","Indian/Antananarivo"],MEX:["Mexique","America/Mexico_City"],MKD:["Macédoine du Nord","Europe/Skopje"],MLI:["Mali","Africa/Bamako"],
-MMR:["Birmanie","Asia/Yangon"],MNE:["Monténégro","Europe/Podgorica"],MNG:["Mongolie","Asia/Ulaanbaatar"],MOZ:["Mozambique","Africa/Maputo"],
-MRT:["Mauritanie","Africa/Nouakchott"],MWI:["Malawi","Africa/Blantyre"],MYS:["Malaisie","Asia/Kuala_Lumpur"],NAM:["Namibie","Africa/Windhoek"],
-NCL:["Nouvelle-Calédonie","Pacific/Noumea"],NER:["Niger","Africa/Niamey"],NGA:["Nigeria","Africa/Lagos"],NIC:["Nicaragua","America/Managua"],
-NLD:["Pays-Bas","Europe/Amsterdam"],NOR:["Norvège","Europe/Oslo"],NPL:["Népal","Asia/Kathmandu"],NZL:["Nouvelle-Zélande","Pacific/Auckland"],
-OMN:["Oman","Asia/Muscat"],PAK:["Pakistan","Asia/Karachi"],PAN:["Panama","America/Panama"],PER:["Pérou","America/Lima"],
-PHL:["Philippines","Asia/Manila"],PNG:["Papouasie-Nouvelle-Guinée","Pacific/Port_Moresby"],POL:["Pologne","Europe/Warsaw"],PRI:["Porto Rico","America/Puerto_Rico"],
-PRK:["Corée du Nord","Asia/Pyongyang"],PRT:["Portugal","Europe/Lisbon"],PRY:["Paraguay","America/Asuncion"],PSE:["Palestine","Asia/Hebron"],
-QAT:["Qatar","Asia/Qatar"],ROU:["Roumanie","Europe/Bucharest"],RUS:["Russie (Moscou)","Europe/Moscow"],RWA:["Rwanda","Africa/Kigali"],
-SAU:["Arabie saoudite","Asia/Riyadh"],SDN:["Soudan","Africa/Khartoum"],SEN:["Sénégal","Africa/Dakar"],SLB:["Îles Salomon","Pacific/Guadalcanal"],
-SLE:["Sierra Leone","Africa/Freetown"],SLV:["Salvador","America/El_Salvador"],SOM:["Somalie","Africa/Mogadishu"],SRB:["Serbie","Europe/Belgrade"],
-SSD:["Soudan du Sud","Africa/Juba"],SUR:["Suriname","America/Paramaribo"],SVK:["Slovaquie","Europe/Bratislava"],SVN:["Slovénie","Europe/Ljubljana"],
-SWE:["Suède","Europe/Stockholm"],SWZ:["Eswatini","Africa/Mbabane"],SYR:["Syrie","Asia/Damascus"],TCD:["Tchad","Africa/Ndjamena"],
-TGO:["Togo","Africa/Lome"],THA:["Thaïlande","Asia/Bangkok"],TJK:["Tadjikistan","Asia/Dushanbe"],TKM:["Turkménistan","Asia/Ashgabat"],
-TLS:["Timor oriental","Asia/Dili"],TTO:["Trinité-et-Tobago","America/Port_of_Spain"],TUN:["Tunisie","Africa/Tunis"],TUR:["Turquie","Europe/Istanbul"],
-TWN:["Taïwan","Asia/Taipei"],TZA:["Tanzanie","Africa/Dar_es_Salaam"],UGA:["Ouganda","Africa/Kampala"],UKR:["Ukraine","Europe/Kyiv"],
-URY:["Uruguay","America/Montevideo"],USA:["États-Unis (Washington)","America/New_York"],UZB:["Ouzbékistan","Asia/Tashkent"],VEN:["Venezuela","America/Caracas"],
-VNM:["Vietnam","Asia/Ho_Chi_Minh"],VUT:["Vanuatu","Pacific/Efate"],YEM:["Yémen","Asia/Aden"],ZAF:["Afrique du Sud","Africa/Johannesburg"],
-ZMB:["Zambie","Africa/Lusaka"],ZWE:["Zimbabwe","Africa/Harare"]
-};
+      <p class="section-help">
+        La liste utilise un fuseau représentatif par pays.
+        Pour un pays à plusieurs fuseaux, explore aussi la carte détaillée.
+      </p>
 
-function tzValid(tz) { try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); return true; } catch { return false; } }
-for (const iso of Object.keys(COUNTRIES)) if (!tzValid(COUNTRIES[iso][1])) delete COUNTRIES[iso];
+      <label for="search">Rechercher un pays ou un territoire</label>
+      <br>
 
-// ---------- État ----------
-const DETAIL_ZOOM = 3;          // à partir de ce zoom, on passe aux fuseaux détaillés (mode auto)
-let refIso = 'FRA';
-let delta = 0;
-let now = new Date();
-let mode = 'auto';
-let geoLayer = null, tzLayer = null, borderLayer = null;
-const layersByIso = {};
-const tzLayers = [];
-let lastMinute = -1;
+      <input
+        id="search"
+        type="search"
+        placeholder="Exemple : France, Canada, Japon…"
+        autocomplete="off"
+      >
 
-const pad = n => String(n).padStart(2, '0');
-const virtualNow = () => new Date(Date.now() + delta);
+      <p id="emptyList" hidden>Aucun résultat.</p>
+      <div style="margin: 0 0 12px;">
+  <button type="button" id="exportCsv" class="secondary">
+    📥 Exporter la liste en CSV
+  </button>
 
-// ---------- Calculs horaires ----------
-// Un "descripteur de zone" est soit { tz: 'America/Chicago' } (fuseau IANA, gère l'heure d'été),
-// soit { fixed: -3.5 } (décalage UTC fixe en heures, pour les zones sans nom IANA valide).
-function parts(date, tz) {
-  const p = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz, hourCycle: 'h23',
-    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
-  }).formatToParts(date);
-  const o = {};
-  for (const x of p) if (x.type !== 'literal') o[x.type] = +x.value;
-  return o;
-}
-function localParts(date, desc) {
-  if (desc.tz) return parts(date, desc.tz);
-  const d = new Date(Math.floor(date.getTime() / 60000) * 60000 + desc.fixed * 3600000);
-  return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), hour: d.getUTCHours(), minute: d.getUTCMinutes() };
-}
-function offsetMin(date, tz) {
-  const d = new Date(Math.floor(date.getTime() / 60000) * 60000);
-  const o = parts(d, tz);
-  return Math.round((Date.UTC(o.year, o.month - 1, o.day, o.hour, o.minute) - d.getTime()) / 60000);
-}
-const offsetOf = (date, desc) => desc.tz ? offsetMin(date, desc.tz) : Math.round(desc.fixed * 60);
+  <p
+    id="exportFeedback"
+    role="status"
+    aria-live="polite"
+    style="margin: 8px 0; font-size: 0.9rem;"
+  ></p>
+</div>
 
-function fmtUtc(min) {
-  const a = Math.abs(min);
-  return `UTC${min < 0 ? '−' : '+'}${pad(Math.floor(a / 60))}:${pad(a % 60)}`;
-}
-function formatDiff(h) {
-  if (h === 0) return 'même heure';
-  const abs = Math.abs(h);
-  const hh = Math.floor(abs), mm = Math.round((abs - hh) * 60);
-  return (h > 0 ? '+' : '−') + hh + 'h' + (mm ? pad(mm) : '');
-}
-function colorFor(diff) {
-  const hue = Math.max(0, Math.min(240, 120 - diff * 10));
-  return `hsl(${hue},70%,55%)`;
-}
+      <div id="list"></div>
+    </section>
 
-function infoFor(desc, name) {
-  const refDesc = { tz: COUNTRIES[refIso][1] };
-  const o = localParts(now, desc), r = localParts(now, refDesc);
-  const off = offsetOf(now, desc);
-  const diff = (off - offsetOf(now, refDesc)) / 60;
-  const k = o.year * 10000 + o.month * 100 + o.day;
-  const rk = r.year * 10000 + r.month * 100 + r.day;
-  const day = k > rk ? 'lendemain' : k < rk ? 'veille' : '';
-  return { name, tz: desc.tz || 'décalage fixe', utc: fmtUtc(off), time: pad(o.hour) + ':' + pad(o.minute), diff, day,
-           date: `${pad(o.day)}/${pad(o.month)}/${o.year}` };
-}
-function info(iso) {
-  const [name, tz] = COUNTRIES[iso];
-  return Object.assign(infoFor({ tz }, name), { iso });
-}
+    <section class="about">
+      <h2>À propos</h2>
 
-// ---------- Carte ----------
-const map = L.map('map', {
-  minZoom: 1, maxZoom: 7,
-  maxBounds: [[-85, -200], [85, 200]], maxBoundsViscosity: 0.8,
-  attributionControl: false
-}).setView([25, 10], 2);
-L.control.attribution({ prefix: 'Frontières & fuseaux : Natural Earth · Carte : Leaflet' }).addTo(map);
-map.createPane('tzPane').style.zIndex = 390;       // fuseaux sous les frontières
-map.createPane('borderPane').style.zIndex = 410;   // frontières au-dessus (non cliquables)
+      <p>
+        Horloge mondiale permet de comparer les heures à partir d’un pays,
+        d’un fuseau et d’une date de référence. Le bouton de l’appareil
+        utilise le fuseau configuré dans le système, sans demander
+        de position GPS.
+      </p>
 
-function styleFor(feature) {
-  const iso = feature.id;
-  if (!COUNTRIES[iso]) return { fillColor: '#cfd4d9', color: '#fff', weight: .5, fillOpacity: 1 };
-  const isRef = iso === refIso;
-  return { fillColor: colorFor(info(iso).diff), color: isRef ? '#111' : '#fff', weight: isRef ? 3 : .6, fillOpacity: .9 };
-}
-function tzStyle(feature) {
-  return { fillColor: colorFor(infoFor(feature._desc, '').diff), color: '#fff', weight: .8, fillOpacity: .9 };
-}
-function borderStyle(feature) {
-  const isRef = feature.id === refIso;
-  return { fill: false, color: isRef ? '#111' : '#444', weight: isRef ? 3 : 1, opacity: isRef ? 1 : .7 };
-}
+      <p>
+        Les calculs des fuseaux IANA utilisent les règles disponibles
+        dans le navigateur ou dans Electron. Une mise à jour de
+        l’application peut être nécessaire lorsque ces règles changent.
+        Les dates proposées vont de 1970 à 2100 ; les règles futures
+        peuvent évoluer.
+      </p>
 
-const infoCtl = L.control({ position: 'topright' });
-infoCtl.onAdd = function () { this._div = L.DomUtil.create('div', 'info'); this.update(); return this._div; };
-infoCtl.update = function (iso) {
-  if (!iso || !COUNTRIES[iso]) { this._div.innerHTML = 'Survolez un pays ou un fuseau<br><small>Cliquez sur un pays pour en faire la référence</small>'; return; }
-  const i = info(iso);
-  this._div.innerHTML = `<b>${i.name}</b><br>🕒 <b>${i.time}</b> ${i.day ? '(' + i.day + ')' : ''}<br>${i.date}<br><small>${formatDiff(i.diff)} par rapport à ${COUNTRIES[refIso][0]}<br>${i.tz} (${i.utc})</small>`;
-};
-infoCtl.updateZone = function (feature) {
-  const p = feature.properties, i = infoFor(feature._desc, '');
-  const places = (p.places || '').replace(/,\s*/g, ', ');
-  this._div.innerHTML = `<b>Fuseau ${i.utc}</b><br>🕒 <b>${i.time}</b> ${i.day ? '(' + i.day + ')' : ''}<br>${i.date}<br><small>${formatDiff(i.diff)} par rapport à ${COUNTRIES[refIso][0]}<br>${i.tz}${places ? '<br>' + places.slice(0, 120) + (places.length > 120 ? '…' : '') : ''}</small>`;
-};
-infoCtl.addTo(map);
+      <p>
+        Les frontières des pays et des fuseaux sont simplifiées.
+        Une zone possédant seulement un décalage UTC fixe ne permet
+        pas de calculer automatiquement ses changements d’heure :
+        ce cas est indiqué dans le panneau d’information.
+      </p>
 
-const legend = L.control({ position: 'bottomleft' });
-legend.onAdd = function () {
-  const d = L.DomUtil.create('div', 'legend');
-  d.innerHTML = 'Décalage par rapport au pays de référence<div class="bar"></div><div class="scale"><span>−12h</span><span>0h</span><span>+14h</span></div>';
-  return d;
-};
-legend.addTo(map);
+      <p>
+        Les couleurs représentent l’écart avec la référence :
+        bleu pour une heure en retard, gris pour le même décalage,
+        orange pour une heure en avance. Les dates restent importantes,
+        notamment près de la ligne de changement de date.
+      </p>
 
-const tooltipHtml = iso => { const i = info(iso); return `${i.name}<br>${i.time}`; };
-const tzTooltipHtml = f => { const i = infoFor(f._desc, ''); return `${i.time}<br><small>${i.utc}</small>`; };
+      <p>
+        Bibliothèques et données : Leaflet, world.geo.json et Natural Earth.
+        La carte utilise uniquement les fichiers locaux du projet :
+        aucune clé API ni connexion n’est nécessaire pour l’afficher.
+      </p>
+    </section>
+  </main>
 
-function buildCountries(data) {
-  geoLayer = L.geoJSON(data, {
-    style: styleFor,
-    onEachFeature: (feature, layer) => {
-      const iso = feature.id;
-      if (COUNTRIES[iso]) {
-        layersByIso[iso] = layer;
-        layer.bindTooltip(tooltipHtml(iso), { permanent: true, direction: 'center', className: 'time-label' });
+  <!-- Diagnostic indépendant du script principal. -->
+  <script>
+    (() => {
+      const panel = document.getElementById('resourceErrors');
+      const list = document.getElementById('resourceErrorsList');
+      const reported = new Set();
+
+      window.reportClockProblem = function (message) {
+        const text = String(message);
+
+        if (reported.has(text)) return;
+        reported.add(text);
+
+        const item = document.createElement('li');
+        item.textContent = text;
+        list.appendChild(item);
+
+        panel.hidden = false;
+      };
+
+      window.addEventListener('error', event => {
+        const target = event.target;
+
+        if (
+          target &&
+          target.tagName === 'SCRIPT' &&
+          target.getAttribute('src')
+        ) {
+          window.reportClockProblem(
+            'Impossible de charger ' + target.getAttribute('src') + '.'
+          );
+          return;
+        }
+
+        if (event.message) {
+          window.reportClockProblem(
+            'Erreur JavaScript : ' + event.message
+          );
+        }
+      }, true);
+    })();
+  </script>
+
+  <script src="leaflet.js"></script>
+  <script src="countries.geo.js"></script>
+  <script src="timezones.geo.js"></script>
+
+  <script>
+    (() => {
+      'use strict';
+
+      // ISO3 : [nom affiché, fuseau représentatif].
+      // Un fuseau représentatif ne couvre pas nécessairement tout le pays.
+      const COUNTRIES = {
+        AFG:["Afghanistan","Asia/Kabul"],
+        AGO:["Angola","Africa/Luanda"],
+        ALB:["Albanie","Europe/Tirane"],
+        ARE:["Émirats arabes unis","Asia/Dubai"],
+        ARG:["Argentine","America/Argentina/Buenos_Aires"],
+        ARM:["Arménie","Asia/Yerevan"],
+        ATF:["Terres australes françaises","Indian/Kerguelen"],
+        AUS:["Australie (Sydney)","Australia/Sydney"],
+        AUT:["Autriche","Europe/Vienna"],
+        AZE:["Azerbaïdjan","Asia/Baku"],
+        BDI:["Burundi","Africa/Bujumbura"],
+        BEL:["Belgique","Europe/Brussels"],
+        BEN:["Bénin","Africa/Porto-Novo"],
+        BFA:["Burkina Faso","Africa/Ouagadougou"],
+        BGD:["Bangladesh","Asia/Dhaka"],
+        BGR:["Bulgarie","Europe/Sofia"],
+        BHS:["Bahamas","America/Nassau"],
+        BIH:["Bosnie-Herzégovine","Europe/Sarajevo"],
+        BLR:["Biélorussie","Europe/Minsk"],
+        BLZ:["Belize","America/Belize"],
+        BOL:["Bolivie","America/La_Paz"],
+        BRA:["Brésil (Brasilia)","America/Sao_Paulo"],
+        BRN:["Brunei","Asia/Brunei"],
+        BTN:["Bhoutan","Asia/Thimphu"],
+        BWA:["Botswana","Africa/Gaborone"],
+        CAF:["Centrafrique","Africa/Bangui"],
+        CAN:["Canada (Ottawa)","America/Toronto"],
+        CHE:["Suisse","Europe/Zurich"],
+        CHL:["Chili","America/Santiago"],
+        CHN:["Chine","Asia/Shanghai"],
+        CIV:["Côte d’Ivoire","Africa/Abidjan"],
+        CMR:["Cameroun","Africa/Douala"],
+        COD:["RD Congo (Kinshasa)","Africa/Kinshasa"],
+        COG:["Congo","Africa/Brazzaville"],
+        COL:["Colombie","America/Bogota"],
+        CRI:["Costa Rica","America/Costa_Rica"],
+        CUB:["Cuba","America/Havana"],
+        CYP:["Chypre","Asia/Nicosia"],
+        CZE:["Tchéquie","Europe/Prague"],
+        DEU:["Allemagne","Europe/Berlin"],
+        DJI:["Djibouti","Africa/Djibouti"],
+        DNK:["Danemark","Europe/Copenhagen"],
+        DOM:["République dominicaine","America/Santo_Domingo"],
+        DZA:["Algérie","Africa/Algiers"],
+        ECU:["Équateur","America/Guayaquil"],
+        EGY:["Égypte","Africa/Cairo"],
+        ERI:["Érythrée","Africa/Asmara"],
+        ESH:["Sahara occidental","Africa/El_Aaiun"],
+        ESP:["Espagne","Europe/Madrid"],
+        EST:["Estonie","Europe/Tallinn"],
+        ETH:["Éthiopie","Africa/Addis_Ababa"],
+        FIN:["Finlande","Europe/Helsinki"],
+        FJI:["Fidji","Pacific/Fiji"],
+        FLK:["Îles Malouines","Atlantic/Stanley"],
+        FRA:["France (Paris)","Europe/Paris"],
+        GAB:["Gabon","Africa/Libreville"],
+        GBR:["Royaume-Uni","Europe/London"],
+        GEO:["Géorgie","Asia/Tbilisi"],
+        GHA:["Ghana","Africa/Accra"],
+        GIN:["Guinée","Africa/Conakry"],
+        GMB:["Gambie","Africa/Banjul"],
+        GNB:["Guinée-Bissau","Africa/Bissau"],
+        GNQ:["Guinée équatoriale","Africa/Malabo"],
+        GRC:["Grèce","Europe/Athens"],
+        GRL:["Groenland","America/Nuuk"],
+        GTM:["Guatemala","America/Guatemala"],
+        GUY:["Guyana","America/Guyana"],
+        HND:["Honduras","America/Tegucigalpa"],
+        HRV:["Croatie","Europe/Zagreb"],
+        HTI:["Haïti","America/Port-au-Prince"],
+        HUN:["Hongrie","Europe/Budapest"],
+        IDN:["Indonésie (Jakarta)","Asia/Jakarta"],
+        IND:["Inde","Asia/Kolkata"],
+        IRL:["Irlande","Europe/Dublin"],
+        IRN:["Iran","Asia/Tehran"],
+        IRQ:["Irak","Asia/Baghdad"],
+        ISL:["Islande","Atlantic/Reykjavik"],
+        ISR:["Israël","Asia/Jerusalem"],
+        ITA:["Italie","Europe/Rome"],
+        JAM:["Jamaïque","America/Jamaica"],
+        JOR:["Jordanie","Asia/Amman"],
+        JPN:["Japon","Asia/Tokyo"],
+        KAZ:["Kazakhstan (Almaty)","Asia/Almaty"],
+        KEN:["Kenya","Africa/Nairobi"],
+        KGZ:["Kirghizistan","Asia/Bishkek"],
+        KHM:["Cambodge","Asia/Phnom_Penh"],
+        KOR:["Corée du Sud","Asia/Seoul"],
+        KWT:["Koweït","Asia/Kuwait"],
+        LAO:["Laos","Asia/Vientiane"],
+        LBN:["Liban","Asia/Beirut"],
+        LBR:["Liberia","Africa/Monrovia"],
+        LBY:["Libye","Africa/Tripoli"],
+        LKA:["Sri Lanka","Asia/Colombo"],
+        LSO:["Lesotho","Africa/Maseru"],
+        LTU:["Lituanie","Europe/Vilnius"],
+        LUX:["Luxembourg","Europe/Luxembourg"],
+        LVA:["Lettonie","Europe/Riga"],
+        MAR:["Maroc","Africa/Casablanca"],
+        MDA:["Moldavie","Europe/Chisinau"],
+        MDG:["Madagascar","Indian/Antananarivo"],
+        MEX:["Mexique","America/Mexico_City"],
+        MKD:["Macédoine du Nord","Europe/Skopje"],
+        MLI:["Mali","Africa/Bamako"],
+        MMR:["Birmanie","Asia/Yangon"],
+        MNE:["Monténégro","Europe/Podgorica"],
+        MNG:["Mongolie","Asia/Ulaanbaatar"],
+        MOZ:["Mozambique","Africa/Maputo"],
+        MRT:["Mauritanie","Africa/Nouakchott"],
+        MWI:["Malawi","Africa/Blantyre"],
+        MYS:["Malaisie","Asia/Kuala_Lumpur"],
+        NAM:["Namibie","Africa/Windhoek"],
+        NCL:["Nouvelle-Calédonie","Pacific/Noumea"],
+        NER:["Niger","Africa/Niamey"],
+        NGA:["Nigeria","Africa/Lagos"],
+        NIC:["Nicaragua","America/Managua"],
+        NLD:["Pays-Bas","Europe/Amsterdam"],
+        NOR:["Norvège","Europe/Oslo"],
+        NPL:["Népal","Asia/Kathmandu"],
+        NZL:["Nouvelle-Zélande","Pacific/Auckland"],
+        OMN:["Oman","Asia/Muscat"],
+        PAK:["Pakistan","Asia/Karachi"],
+        PAN:["Panama","America/Panama"],
+        PER:["Pérou","America/Lima"],
+        PHL:["Philippines","Asia/Manila"],
+        PNG:["Papouasie-Nouvelle-Guinée","Pacific/Port_Moresby"],
+        POL:["Pologne","Europe/Warsaw"],
+        PRI:["Porto Rico","America/Puerto_Rico"],
+        PRK:["Corée du Nord","Asia/Pyongyang"],
+        PRT:["Portugal","Europe/Lisbon"],
+        PRY:["Paraguay","America/Asuncion"],
+        PSE:["Palestine","Asia/Hebron"],
+        QAT:["Qatar","Asia/Qatar"],
+        ROU:["Roumanie","Europe/Bucharest"],
+        RUS:["Russie (Moscou)","Europe/Moscow"],
+        RWA:["Rwanda","Africa/Kigali"],
+        SAU:["Arabie saoudite","Asia/Riyadh"],
+        SDN:["Soudan","Africa/Khartoum"],
+        SEN:["Sénégal","Africa/Dakar"],
+        SLB:["Îles Salomon","Pacific/Guadalcanal"],
+        SLE:["Sierra Leone","Africa/Freetown"],
+        SLV:["Salvador","America/El_Salvador"],
+        SOM:["Somalie","Africa/Mogadishu"],
+        SRB:["Serbie","Europe/Belgrade"],
+        SSD:["Soudan du Sud","Africa/Juba"],
+        SUR:["Suriname","America/Paramaribo"],
+        SVK:["Slovaquie","Europe/Bratislava"],
+        SVN:["Slovénie","Europe/Ljubljana"],
+        SWE:["Suède","Europe/Stockholm"],
+        SWZ:["Eswatini","Africa/Mbabane"],
+        SYR:["Syrie","Asia/Damascus"],
+        TCD:["Tchad","Africa/Ndjamena"],
+        TGO:["Togo","Africa/Lome"],
+        THA:["Thaïlande","Asia/Bangkok"],
+        TJK:["Tadjikistan","Asia/Dushanbe"],
+        TKM:["Turkménistan","Asia/Ashgabat"],
+        TLS:["Timor oriental","Asia/Dili"],
+        TTO:["Trinité-et-Tobago","America/Port_of_Spain"],
+        TUN:["Tunisie","Africa/Tunis"],
+        TUR:["Turquie","Europe/Istanbul"],
+        TWN:["Taïwan","Asia/Taipei"],
+        TZA:["Tanzanie","Africa/Dar_es_Salaam"],
+        UGA:["Ouganda","Africa/Kampala"],
+        UKR:["Ukraine","Europe/Kyiv"],
+        URY:["Uruguay","America/Montevideo"],
+        USA:["États-Unis (Washington)","America/New_York"],
+        UZB:["Ouzbékistan","Asia/Tashkent"],
+        VEN:["Venezuela","America/Caracas"],
+        VNM:["Vietnam","Asia/Ho_Chi_Minh"],
+        VUT:["Vanuatu","Pacific/Efate"],
+        YEM:["Yémen","Asia/Aden"],
+        ZAF:["Afrique du Sud","Africa/Johannesburg"],
+        ZMB:["Zambie","Africa/Lusaka"],
+        ZWE:["Zimbabwe","Africa/Harare"]
+      };
+
+      // ---------- Éléments de l’interface ----------
+
+      const formEl = document.getElementById('form');
+      const selectEl = document.getElementById('country');
+      const dateEl = document.getElementById('date');
+      const timeEl = document.getElementById('time');
+      const dstChoiceEl = document.getElementById('dstChoice');
+      const modeEl = document.getElementById('mode');
+      const statusEl = document.getElementById('status');
+      const feedbackEl = document.getElementById('dateFeedback');
+      const tzStatusEl = document.getElementById('tzstatus');
+      const listEl = document.getElementById('list');
+      const searchEl = document.getElementById('search');
+      const emptyListEl = document.getElementById('emptyList');
+
+      // ---------- État ----------
+
+      const DETAIL_ZOOM = 3;
+      const LABEL_ZOOM = 4;
+      const MIN_YEAR = 1970;
+      const MAX_YEAR = 2100;
+
+      let refIso = 'FRA';
+      let refZone = null;
+      let refLabel = null;
+
+      let delta = 0;
+      let simulated = false;
+      let now = new Date();
+
+      let mode = 'auto';
+      let formDirty = false;
+      let lastMinute = -1;
+
+      let map = null;
+      let geoLayer = null;
+      let tzLayer = null;
+      let borderLayer = null;
+      let infoCtl = null;
+
+      let activeInfo = null;
+      let pinnedInfo = null;
+
+      const countryLayers = [];
+      const timezoneLayers = [];
+
+      // Objets de formatage réutilisés.
+      const dateFormatters = new Map();
+      const validityCache = new Map();
+
+      // Résultats locaux réutilisés pendant un rafraîchissement.
+      const snapshots = new Map();
+
+      let customOption = null;
+
+      // ---------- Outils généraux ----------
+
+      const pad = value => String(value).padStart(2, '0');
+
+      const virtualNow = () => new Date(Date.now() + delta);
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, character => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[character]));
       }
-      layer.on({
-        mouseover: e => { infoCtl.update(iso); e.target.setStyle({ weight: 2, color: '#333' }); e.target.bringToFront(); },
-        mouseout: e => { infoCtl.update(); geoLayer.resetStyle(e.target); },
-        click: () => { if (COUNTRIES[iso]) setReference(iso); }
+
+      function normalizeSearch(value) {
+        return String(value)
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .trim();
+      }
+
+      function showFeedback(message = '', isError = false) {
+        feedbackEl.textContent = message;
+        feedbackEl.classList.toggle('feedback-error', isError);
+      }
+
+      function hasFeatures(data) {
+        return (
+          data &&
+          data.type === 'FeatureCollection' &&
+          Array.isArray(data.features) &&
+          data.features.length > 0
+        );
+      }
+
+      function isPolygonFeature(feature) {
+        return (
+          feature &&
+          feature.geometry &&
+          (
+            feature.geometry.type === 'Polygon' ||
+            feature.geometry.type === 'MultiPolygon'
+          )
+        );
+      }
+
+      // ---------- Fuseaux et calculs horaires ----------
+
+      function tzValid(tz) {
+        if (typeof tz !== 'string' || !tz.trim()) return false;
+
+        if (validityCache.has(tz)) {
+          return validityCache.get(tz);
+        }
+
+        let valid = false;
+
+        try {
+          new Intl.DateTimeFormat('en-US', { timeZone: tz });
+          valid = true;
+        } catch {
+          valid = false;
+        }
+
+        validityCache.set(tz, valid);
+        return valid;
+      }
+
+      function parts(date, tz) {
+        let formatter = dateFormatters.get(tz);
+
+        if (!formatter) {
+          formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: tz,
+            calendar: 'gregory',
+            numberingSystem: 'latn',
+            hourCycle: 'h23',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+
+          dateFormatters.set(tz, formatter);
+        }
+
+        const result = {};
+
+        for (const part of formatter.formatToParts(date)) {
+          if (part.type !== 'literal') {
+            result[part.type] = Number(part.value);
+          }
+        }
+
+        return result;
+      }
+
+      function wallTimestamp(local) {
+        return Date.UTC(
+          local.year,
+          local.month - 1,
+          local.day,
+          local.hour,
+          local.minute
+        );
+      }
+
+      function localParts(date, desc) {
+        if (desc.tz) return parts(date, desc.tz);
+
+        const shifted = new Date(
+          date.getTime() + desc.fixed * 3600000
+        );
+
+        return {
+          year: shifted.getUTCFullYear(),
+          month: shifted.getUTCMonth() + 1,
+          day: shifted.getUTCDate(),
+          hour: shifted.getUTCHours(),
+          minute: shifted.getUTCMinutes()
+        };
+      }
+
+      function offsetMin(date, tz) {
+        const minuteTimestamp =
+          Math.floor(date.getTime() / 60000) * 60000;
+
+        const local = parts(new Date(minuteTimestamp), tz);
+
+        return Math.round(
+          (wallTimestamp(local) - minuteTimestamp) / 60000
+        );
+      }
+
+      function offsetOf(date, desc) {
+        return desc.tz
+          ? offsetMin(date, desc.tz)
+          : Math.round(desc.fixed * 60);
+      }
+
+      function referenceDescriptor() {
+        return refZone || { tz: COUNTRIES[refIso][1] };
+      }
+
+      function referenceName() {
+        return refLabel || COUNTRIES[refIso][0];
+      }
+
+      function descriptorKey(desc) {
+        return desc.tz
+          ? 'tz:' + desc.tz
+          : 'fixed:' + desc.fixed;
+      }
+
+      function sameDescriptor(first, second) {
+        return descriptorKey(first) === descriptorKey(second);
+      }
+
+      function snapshot(desc) {
+        const key = descriptorKey(desc);
+
+        if (snapshots.has(key)) {
+          return snapshots.get(key);
+        }
+
+        const local = localParts(now, desc);
+        const minuteTimestamp =
+          Math.floor(now.getTime() / 60000) * 60000;
+
+        const offset = desc.tz
+          ? Math.round(
+              (wallTimestamp(local) - minuteTimestamp) / 60000
+            )
+          : Math.round(desc.fixed * 60);
+
+        const result = { ...local, offset };
+
+        snapshots.set(key, result);
+        return result;
+      }
+
+      function localDateTimeToEpoch(
+        dateValue,
+        timeValue,
+        desc,
+        occurrence = 'earlier'
+      ) {
+        if (
+          !/^\d{4}-\d{2}-\d{2}$/.test(dateValue) ||
+          !/^\d{2}:\d{2}$/.test(timeValue)
+        ) {
+          throw new Error('Choisis une date et une heure valides.');
+        }
+
+        const [year, month, day] = dateValue.split('-').map(Number);
+        const [hour, minute] = timeValue.split(':').map(Number);
+
+        const wallTime = Date.UTC(
+          year,
+          month - 1,
+          day,
+          hour,
+          minute
+        );
+
+        const check = new Date(wallTime);
+
+        if (
+          year < MIN_YEAR ||
+          year > MAX_YEAR ||
+          check.getUTCFullYear() !== year ||
+          check.getUTCMonth() + 1 !== month ||
+          check.getUTCDate() !== day ||
+          check.getUTCHours() !== hour ||
+          check.getUTCMinutes() !== minute
+        ) {
+          throw new Error(
+            'Choisis une date valide entre 1970 et 2100.'
+          );
+        }
+
+        const offsets = new Set();
+
+        if (desc.tz) {
+          // Cherche les décalages avant et après une éventuelle transition.
+          for (let hours = -48; hours <= 48; hours++) {
+            offsets.add(
+              offsetOf(
+                new Date(wallTime + hours * 3600000),
+                desc
+              )
+            );
+          }
+        } else {
+          offsets.add(Math.round(desc.fixed * 60));
+        }
+
+        const candidates = [];
+
+        for (const offset of offsets) {
+          if (!Number.isFinite(offset)) continue;
+
+          const timestamp = wallTime - offset * 60000;
+          const local = localParts(new Date(timestamp), desc);
+
+          if (
+            local.year === year &&
+            local.month === month &&
+            local.day === day &&
+            local.hour === hour &&
+            local.minute === minute
+          ) {
+            candidates.push(timestamp);
+          }
+        }
+
+        const instants = [...new Set(candidates)]
+          .sort((a, b) => a - b);
+
+        if (instants.length === 0) {
+          throw new Error(
+            'Cette heure locale n’existe pas dans le fuseau choisi, ' +
+            'en raison d’un changement d’heure ou de décalage. ' +
+            'Choisis une autre heure.'
+          );
+        }
+
+        return {
+          timestamp: occurrence === 'later'
+            ? instants[instants.length - 1]
+            : instants[0],
+          ambiguous: instants.length > 1
+        };
+      }
+
+      function fmtUtc(minutes) {
+        const total = Math.round(minutes);
+        const absolute = Math.abs(total);
+
+        return (
+          'UTC' +
+          (total < 0 ? '−' : '+') +
+          pad(Math.floor(absolute / 60)) +
+          ':' +
+          pad(absolute % 60)
+        );
+      }
+
+      function formatDiff(hours) {
+        const minutes = Math.round(hours * 60);
+
+        if (minutes === 0) return 'même heure';
+
+        const absolute = Math.abs(minutes);
+        const wholeHours = Math.floor(absolute / 60);
+        const remainingMinutes = absolute % 60;
+
+        return (
+          (minutes > 0 ? '+' : '−') +
+          wholeHours +
+          ' h' +
+          (remainingMinutes ? ' ' + pad(remainingMinutes) : '')
+        );
+      }
+
+      function colorFor(diff) {
+        if (!Number.isFinite(diff)) return '#cbd5e1';
+
+        const neutral = [229, 231, 235];
+
+        const target = diff < 0
+          ? [59, 130, 246]
+          : [249, 115, 22];
+
+        const strength = diff < 0
+          ? Math.min(Math.abs(diff) / 12, 1)
+          : Math.min(diff / 14, 1);
+
+        const rgb = neutral.map((value, index) =>
+          Math.round(
+            value + (target[index] - value) * strength
+          )
+        );
+
+        return `rgb(${rgb.join(',')})`;
+      }
+
+      function infoFor(desc, name) {
+        const local = snapshot(desc);
+        const reference = snapshot(referenceDescriptor());
+
+        const diff = (local.offset - reference.offset) / 60;
+
+        const localDay = Date.UTC(
+          local.year,
+          local.month - 1,
+          local.day
+        );
+
+        const referenceDay = Date.UTC(
+          reference.year,
+          reference.month - 1,
+          reference.day
+        );
+
+        const daysApart = Math.round(
+          (localDay - referenceDay) / 86400000
+        );
+
+        let day = '';
+
+        if (daysApart === 1) day = 'lendemain';
+        else if (daysApart === -1) day = 'veille';
+        else if (daysApart !== 0) {
+          day = 'J' + (daysApart > 0 ? '+' : '') + daysApart;
+        }
+
+        return {
+          name,
+          tz: desc.tz || 'Décalage UTC fixe',
+          fixed: !desc.tz,
+          utc: fmtUtc(local.offset),
+          time: pad(local.hour) + ':' + pad(local.minute),
+          diff,
+          day,
+          date:
+            pad(local.day) + '/' +
+            pad(local.month) + '/' +
+            local.year,
+          dateISO:
+            local.year + '-' +
+            pad(local.month) + '-' +
+            pad(local.day)
+        };
+      }
+
+      function info(iso) {
+        const [name, tz] = COUNTRIES[iso];
+
+        return {
+          ...infoFor({ tz }, name),
+          iso
+        };
+      }
+
+      // ---------- Référence et formulaire ----------
+
+      function syncCountrySelect() {
+        if (refZone) {
+          customOption.hidden = false;
+          customOption.textContent = 'Référence : ' + referenceName();
+          selectEl.value = '__custom';
+        } else {
+          selectEl.value = refIso;
+          customOption.hidden = true;
+        }
+      }
+
+      function setReference(iso) {
+        if (!COUNTRIES[iso]) return;
+
+        refIso = iso;
+        refZone = null;
+        refLabel = null;
+        formDirty = false;
+
+        showFeedback();
+        syncCountrySelect();
+        refresh(true);
+      }
+
+      function setReferenceZone(desc, label) {
+        refZone = { ...desc };
+        refLabel = label;
+        formDirty = false;
+
+        showFeedback(
+          desc.tz
+            ? ''
+            : 'Cette référence utilise un décalage UTC fixe, sans changement d’heure automatique.'
+        );
+
+        syncCountrySelect();
+        refresh(true);
+      }
+
+      function syncInputs(force = false) {
+        const editing = [
+          dateEl,
+          timeEl,
+          dstChoiceEl
+        ].includes(document.activeElement);
+
+        if (!force && (formDirty || editing)) return;
+
+        const reference = infoFor(
+          referenceDescriptor(),
+          referenceName()
+        );
+
+        dateEl.value = reference.dateISO;
+        timeEl.value = reference.time;
+      }
+
+      function markFormDirty() {
+        formDirty = true;
+
+        showFeedback(
+          'Saisie en attente : clique sur « Afficher » pour l’appliquer.'
+        );
+      }
+
+      function setupInterface() {
+        const entries = Object.entries(COUNTRIES)
+          .sort((a, b) => a[1][0].localeCompare(b[1][0], 'fr'));
+
+        for (const [iso, [name]] of entries) {
+          const option = document.createElement('option');
+
+          option.value = iso;
+          option.textContent = name;
+
+          selectEl.appendChild(option);
+        }
+
+        customOption = document.createElement('option');
+        customOption.value = '__custom';
+        customOption.textContent = 'Fuseau personnalisé';
+        customOption.hidden = true;
+
+        selectEl.appendChild(customOption);
+        selectEl.value = refIso;
+
+        selectEl.addEventListener('change', () => {
+          if (selectEl.value === '__custom') return;
+
+          const iso = selectEl.value;
+
+          pinnedInfo = { type: 'country', iso };
+          activeInfo = pinnedInfo;
+
+          setReference(iso);
+        });
+
+        dateEl.addEventListener('input', markFormDirty);
+        timeEl.addEventListener('input', markFormDirty);
+        dstChoiceEl.addEventListener('change', markFormDirty);
+
+        formEl.addEventListener('submit', event => {
+          event.preventDefault();
+
+          try {
+            const result = localDateTimeToEpoch(
+              dateEl.value,
+              timeEl.value,
+              referenceDescriptor(),
+              dstChoiceEl.value
+            );
+
+            // Ne modifie l’horloge qu’après une conversion réussie.
+            delta = result.timestamp - Date.now();
+            simulated = true;
+            formDirty = false;
+
+            refresh(true);
+
+            if (result.ambiguous) {
+              const occurrence = dstChoiceEl.value === 'later'
+                ? 'seconde'
+                : 'première';
+
+              const offset = offsetOf(
+                new Date(result.timestamp),
+                referenceDescriptor()
+              );
+
+              showFeedback(
+                'Cette heure existe deux fois : la ' +
+                occurrence +
+                ' occurrence est utilisée (' +
+                fmtUtc(offset) +
+                ').'
+              );
+            } else {
+              showFeedback();
+            }
+          } catch (error) {
+            showFeedback(
+              '⚠ ' + (error.message || 'Conversion impossible.'),
+              true
+            );
+          }
+        });
+
+        document.getElementById('deviceZone')
+          .addEventListener('click', () => {
+            const tz =
+              Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+            if (!tzValid(tz)) {
+              showFeedback(
+                'Le fuseau horaire de cet appareil ne peut pas être détecté.',
+                true
+              );
+              return;
+            }
+
+            pinnedInfo = null;
+            activeInfo = null;
+
+            setReferenceZone(
+              { tz },
+              'Fuseau de l’appareil : ' + tz
+            );
+          });
+
+        document.getElementById('reset')
+          .addEventListener('click', () => {
+            delta = 0;
+            simulated = false;
+            formDirty = false;
+
+            showFeedback();
+            refresh(true);
+          });
+
+        modeEl.addEventListener('change', () => {
+          mode = modeEl.value;
+          savePreferences();
+
+         // Conserve ici toutes les autres lignes déjà présentes.
+
+          // Évite de conserver les informations d’une couche masquée.
+          activeInfo = null;
+          pinnedInfo = null;
+
+          updateLayers();
+          renderInfo();
+        });
+
+        searchEl.addEventListener('input', renderList);
+
+        listEl.addEventListener('click', event => {
+          const card = event.target.closest('.card');
+
+          if (!card) return;
+
+          const iso = card.dataset.iso;
+
+          pinnedInfo = { type: 'country', iso };
+          activeInfo = pinnedInfo;
+
+          setReference(iso);
+        });
+      }
+
+      // ---------- Liste ----------
+
+      function renderList() {
+        const query = normalizeSearch(searchEl.value);
+
+        const focusedIso =
+          document.activeElement?.closest('.card')?.dataset.iso;
+
+        const items = Object.keys(COUNTRIES)
+          .map(info)
+          .filter(item =>
+            !query ||
+            normalizeSearch(item.name).includes(query)
+          )
+          .sort((a, b) =>
+            a.diff - b.diff ||
+            a.name.localeCompare(b.name, 'fr')
+          );
+
+        const fragment = document.createDocumentFragment();
+
+        for (const item of items) {
+          const card = document.createElement('button');
+
+          const isReference =
+            !refZone && item.iso === refIso;
+
+          card.type = 'button';
+          card.className = 'card' + (isReference ? ' ref' : '');
+          card.dataset.iso = item.iso;
+          card.style.borderLeftColor = colorFor(item.diff);
+          card.setAttribute('aria-pressed', String(isReference));
+
+          const name = document.createElement('span');
+          name.className = 'name';
+          name.textContent = item.name;
+          name.title = item.name;
+
+          const time = document.createElement('span');
+          time.className = 'time';
+          time.textContent = item.time;
+
+          const difference = document.createElement('span');
+          difference.className = 'diff';
+          difference.textContent =
+            formatDiff(item.diff) +
+            (item.day ? ' · ' + item.day : '');
+
+          const date = document.createElement('span');
+          date.className = 'date';
+          date.textContent = item.date;
+
+          card.append(name, time, difference, date);
+          fragment.appendChild(card);
+        }
+
+        listEl.replaceChildren(fragment);
+        emptyListEl.hidden = items.length !== 0;
+
+        // Préserve le focus clavier pendant l’actualisation.
+        if (focusedIso) {
+          const replacement = listEl.querySelector(
+            `[data-iso="${focusedIso}"]`
+          );
+
+          replacement?.focus({ preventScroll: true });
+        }
+      }
+
+      // ---------- Panneau d’information ----------
+
+      function renderInfo() {
+        if (!infoCtl || !infoCtl._div) return;
+
+        if (!activeInfo) {
+          infoCtl._div.innerHTML = `
+            <strong>Explorer la carte</strong><br>
+            Survole un pays ou un fuseau.<br>
+            <small>
+              Clique ou touche une zone pour la choisir
+              comme référence et conserver ses informations.
+            </small>
+          `;
+          return;
+        }
+
+        let item;
+        let description = '';
+        let warning = '';
+
+        if (activeInfo.type === 'country') {
+          item = info(activeInfo.iso);
+          description = 'Fuseau représentatif du pays ou territoire.';
+        } else {
+          const feature = activeInfo.feature;
+          const desc = feature._clockDesc;
+          const properties = feature.properties || {};
+
+          item = infoFor(
+            desc,
+            desc.tz || 'Zone à décalage fixe'
+          );
+
+          description = String(properties.places || '');
+
+          if (description.length > 140) {
+            description = description.slice(0, 140) + '…';
+          }
+
+          if (!desc.tz) {
+            warning =
+              'Décalage fixe : les changements d’heure ' +
+              'ne sont pas calculés pour cette zone.';
+          }
+        }
+
+        infoCtl._div.innerHTML = `
+          <strong>${escapeHtml(item.name)}</strong>
+          <span class="clock">${escapeHtml(item.time)}</span>
+          ${escapeHtml(item.date)}
+          ${item.day ? ' · ' + escapeHtml(item.day) : ''}
+          <br>
+          <small>
+            ${escapeHtml(item.tz)} · ${escapeHtml(item.utc)}
+            <br>
+            ${escapeHtml(formatDiff(item.diff))}
+            par rapport à ${escapeHtml(referenceName())}
+            ${description ? '<br>' + escapeHtml(description) : ''}
+          </small>
+          ${warning
+            ? '<small class="warning">' + escapeHtml(warning) + '</small>'
+            : ''}
+        `;
+      }
+
+      function showCountryInfo(iso) {
+        activeInfo = { type: 'country', iso };
+        renderInfo();
+      }
+
+      function showZoneInfo(feature) {
+        activeInfo = { type: 'zone', feature };
+        renderInfo();
+      }
+
+      function restorePinnedInfo() {
+        activeInfo = pinnedInfo;
+        renderInfo();
+      }
+
+      // ---------- Styles et étiquettes de la carte ----------
+
+      function styleFor(feature) {
+        const iso = feature.id;
+
+        if (!COUNTRIES[iso]) {
+          return {
+            fillColor: '#b8c0cc',
+            color: '#fff',
+            weight: 0.6,
+            fillOpacity: 1
+          };
+        }
+
+        const isReference = !refZone && iso === refIso;
+
+        return {
+          fillColor: colorFor(info(iso).diff),
+          color: isReference ? '#111827' : '#fff',
+          weight: isReference ? 3 : 0.7,
+          fillOpacity: 0.95
+        };
+      }
+
+      function tzStyle(feature) {
+        const desc = feature._clockDesc;
+
+        const isReference =
+          refZone && sameDescriptor(desc, refZone);
+
+        return {
+          fillColor: colorFor(infoFor(desc, '').diff),
+          color: isReference ? '#111827' : '#fff',
+          weight: isReference ? 2.5 : 0.8,
+          fillOpacity: 0.95
+        };
+      }
+
+      function borderStyle(feature) {
+        const isReference =
+          !refZone && feature.id === refIso;
+
+        return {
+          fill: false,
+          color: isReference ? '#111827' : '#475569',
+          weight: isReference ? 3 : 1,
+          opacity: isReference ? 1 : 0.75
+        };
+      }
+
+      function countryTooltip(iso) {
+        const item = info(iso);
+
+        return (
+          escapeHtml(item.name) +
+          '<br>' +
+          escapeHtml(item.time)
+        );
+      }
+
+      function timezoneTooltip(feature) {
+        const item = infoFor(feature._clockDesc, '');
+
+        return (
+          escapeHtml(item.time) +
+          '<br><small>' +
+          escapeHtml(item.utc) +
+          (item.fixed ? ' · fixe' : '') +
+          '</small>'
+        );
+      }
+
+      // ---------- Lecture des données de fuseaux ----------
+
+      function descriptorFromFeature(feature) {
+        const properties = feature.properties || {};
+
+        // Accepte plusieurs noms de champs courants.
+        const names = [
+          properties.tz_name1st,
+          properties.TZ_NAME1ST,
+          properties.tzid,
+          properties.TZID,
+          properties.timezone
+        ];
+
+        for (const value of names) {
+          if (typeof value !== 'string') continue;
+
+          const tz = value.trim();
+
+          if (tzValid(tz)) return { tz };
+        }
+
+        const rawOffset = properties.zone ?? properties.ZONE;
+
+        if (
+          rawOffset === undefined ||
+          rawOffset === null ||
+          String(rawOffset).trim() === ''
+        ) {
+          return null;
+        }
+
+        const offset = Number(rawOffset);
+
+        if (
+          !Number.isFinite(offset) ||
+          Math.abs(offset) > 24
+        ) {
+          return null;
+        }
+
+        // Ne remplace jamais silencieusement une valeur invalide par UTC.
+        return { fixed: Math.round(offset * 60) / 60 };
+      }
+
+      // ---------- Construction des couches ----------
+
+      function buildCountries(data) {
+        const features = data.features.filter(isPolygonFeature);
+
+        if (!features.length) {
+          throw new Error('Aucun polygone de pays utilisable.');
+        }
+
+        const collection = {
+          type: 'FeatureCollection',
+          features
+        };
+
+        geoLayer = L.geoJSON(collection, {
+          style: styleFor,
+
+          onEachFeature(feature, layer) {
+            const iso = feature.id;
+
+            if (!COUNTRIES[iso]) return;
+
+            countryLayers.push(layer);
+
+            layer.bindTooltip(countryTooltip(iso), {
+              permanent: true,
+              direction: 'center',
+              className: 'time-label'
+            });
+
+            layer.on({
+              mouseover: event => {
+                showCountryInfo(iso);
+
+                event.target.setStyle({
+                  weight: 2,
+                  color: '#111827'
+                });
+              },
+
+              mouseout: event => {
+                geoLayer.resetStyle(event.target);
+                restorePinnedInfo();
+              },
+
+              click: () => {
+                pinnedInfo = { type: 'country', iso };
+                activeInfo = pinnedInfo;
+
+                setReference(iso);
+              }
+            });
+          }
+        });
+
+        borderLayer = L.geoJSON(collection, {
+          pane: 'borderPane',
+          interactive: false,
+          style: borderStyle
+        });
+      }
+
+      function buildTimezones(data) {
+        const features = [];
+        let fixedCount = 0;
+        let ignoredCount = 0;
+
+        for (const source of data.features) {
+          if (!isPolygonFeature(source)) {
+            ignoredCount++;
+            continue;
+          }
+
+          const desc = descriptorFromFeature(source);
+
+          if (!desc) {
+            ignoredCount++;
+            continue;
+          }
+
+          if (!desc.tz) fixedCount++;
+
+          features.push({
+            ...source,
+            _clockDesc: desc
+          });
+        }
+
+        if (!features.length) {
+          throw new Error(
+            'Aucun fuseau ou décalage UTC reconnu dans timezones.geo.js.'
+          );
+        }
+
+        tzLayer = L.geoJSON({
+          type: 'FeatureCollection',
+          features
+        }, {
+          pane: 'tzPane',
+          style: tzStyle,
+
+          onEachFeature(feature, layer) {
+            timezoneLayers.push(layer);
+
+            layer.bindTooltip(timezoneTooltip(feature), {
+              permanent: true,
+              direction: 'center',
+              className: 'tz-label'
+            });
+
+            layer.on({
+              mouseover: event => {
+                showZoneInfo(feature);
+
+                event.target.setStyle({
+                  weight: 2.5,
+                  color: '#111827'
+                });
+              },
+
+              mouseout: event => {
+                tzLayer.resetStyle(event.target);
+                restorePinnedInfo();
+              },
+
+              click: () => {
+                const desc = feature._clockDesc;
+                const properties = feature.properties || {};
+
+                const places = String(properties.places || '')
+                  .split(',')[0]
+                  .trim();
+
+                const label = desc.tz ||
+                  (places
+                    ? places + ' — décalage fixe'
+                    : fmtUtc(offsetOf(now, desc)) + ' — décalage fixe');
+
+                pinnedInfo = { type: 'zone', feature };
+                activeInfo = pinnedInfo;
+
+                setReferenceZone(desc, label);
+              }
+            });
+          }
+        });
+
+        const notes = [];
+
+        if (fixedCount) {
+          notes.push(
+            fixedCount +
+            ' zone(s) utilisent un décalage UTC fixe : ' +
+            'leur heure d’été n’est pas calculée.'
+          );
+        }
+
+        if (ignoredCount) {
+          notes.push(
+            ignoredCount +
+            ' élément(s) non reconnus ont été ignorés.'
+          );
+        }
+
+        tzStatusEl.textContent = notes.join(' ');
+      }
+
+      function detailOn() {
+        if (!tzLayer) return false;
+        if (!geoLayer) return true;
+
+        return (
+          mode === 'tz' ||
+          (
+            mode === 'auto' &&
+            map.getZoom() >= DETAIL_ZOOM
+          )
+        );
+      }
+
+      function setLayerVisible(layer, visible) {
+        if (!map || !layer) return;
+
+        if (visible && !map.hasLayer(layer)) {
+          layer.addTo(map);
+        } else if (!visible && map.hasLayer(layer)) {
+          map.removeLayer(layer);
+        }
+      }
+
+      function updateLayers() {
+        if (!map) return;
+
+        const detailed = detailOn();
+
+        setLayerVisible(geoLayer, !detailed);
+        setLayerVisible(tzLayer, detailed);
+        setLayerVisible(borderLayer, detailed);
+
+        map.getContainer().classList.toggle(
+          'show-labels',
+          !detailed && map.getZoom() >= DETAIL_ZOOM
+        );
+
+        map.getContainer().classList.toggle(
+          'show-tz-labels',
+          detailed && map.getZoom() >= LABEL_ZOOM
+        );
+      }
+
+      function initializeMap() {
+        if (typeof window.L?.map !== 'function') {
+          window.reportClockProblem(
+            'leaflet.js est absent ou invalide. La carte ne peut pas être affichée.'
+          );
+
+          const fallback = document.createElement('p');
+          fallback.className = 'map-fallback';
+          fallback.textContent =
+            'Carte indisponible. La liste des heures reste utilisable.';
+
+          document.getElementById('map').appendChild(fallback);
+          return;
+        }
+
+        map = L.map('map', {
+          minZoom: 1,
+          maxZoom: 7,
+          maxBounds: [[-85, -200], [85, 200]],
+          maxBoundsViscosity: 0.8,
+          attributionControl: false
+        }).setView([25, 10], 2);
+
+        L.control.attribution({ prefix: false })
+          .addAttribution(
+            'Carte : Leaflet · Frontières : world.geo.json · Fuseaux : Natural Earth'
+          )
+          .addTo(map);
+
+        map.createPane('tzPane').style.zIndex = 390;
+
+        const borderPane = map.createPane('borderPane');
+        borderPane.style.zIndex = 410;
+        borderPane.style.pointerEvents = 'none';
+
+        infoCtl = L.control({ position: 'topright' });
+
+        infoCtl.onAdd = function () {
+          this._div = L.DomUtil.create('div', 'info');
+
+          L.DomEvent.disableClickPropagation(this._div);
+          L.DomEvent.disableScrollPropagation(this._div);
+
+          return this._div;
+        };
+
+        infoCtl.addTo(map);
+        renderInfo();
+
+        const legend = L.control({ position: 'bottomleft' });
+
+        legend.onAdd = function () {
+          const element = L.DomUtil.create('div', 'legend');
+
+          element.innerHTML = `
+            <strong>Écart avec l’heure de référence</strong>
+
+            <div class="legend-key">
+              <span>En retard</span>
+              <span>Même heure</span>
+              <span>En avance</span>
+            </div>
+
+            <div class="bar"></div>
+
+            <div class="scale">
+              <span>≤ −12 h</span>
+              <span>0 h</span>
+              <span>≥ +14 h</span>
+            </div>
+
+            <small>
+              Survole ou touche une zone pour consulter son heure
+              et sa date. Les couleurs sont saturées au-delà
+              des valeurs indiquées.
+            </small>
+          `;
+
+          L.DomEvent.disableClickPropagation(element);
+          L.DomEvent.disableScrollPropagation(element);
+
+          return element;
+        };
+
+        legend.addTo(map);
+
+        const countries = window.WORLD_GEOJSON;
+        const timezones = window.TZ_GEOJSON;
+
+        if (hasFeatures(countries)) {
+          try {
+            buildCountries(countries);
+          } catch (error) {
+            window.reportClockProblem(
+              'Frontières : ' + error.message
+            );
+          }
+        } else {
+          window.reportClockProblem(
+            'countries.geo.js manque ou ne contient pas de FeatureCollection valide. ' +
+            'Le fichier doit définir window.WORLD_GEOJSON.'
+          );
+        }
+
+        if (hasFeatures(timezones)) {
+          try {
+            buildTimezones(timezones);
+          } catch (error) {
+            window.reportClockProblem(
+              'Fuseaux détaillés : ' + error.message
+            );
+          }
+        } else {
+          window.reportClockProblem(
+            'timezones.geo.js manque ou ne contient pas de FeatureCollection valide. ' +
+            'Le fichier doit définir window.TZ_GEOJSON.'
+          );
+        }
+
+        if (!tzLayer) {
+          modeEl.querySelector('[value="tz"]').disabled = true;
+
+          tzStatusEl.textContent =
+            'Vue détaillée indisponible : utilisation des fuseaux représentatifs des pays.';
+        }
+
+        if (!geoLayer) {
+          modeEl.querySelector('[value="country"]').disabled = true;
+        }
+
+        if (!geoLayer && !tzLayer) {
+          window.reportClockProblem(
+            'Aucune couche géographique utilisable. La liste des heures reste disponible.'
+          );
+        }
+
+        // ---------- Retour à la vue initiale ----------
+const homeControl = L.control({
+  position: 'topleft'
+});
+
+homeControl.onAdd = function (leafletMap) {
+  const container = L.DomUtil.create(
+    'div',
+    'leaflet-bar map-home-control'
+  );
+
+  const button = document.createElement('button');
+
+  button.type = 'button';
+  button.textContent = '↺ Vue initiale';
+  button.title = 'Revenir au cadrage initial de la carte';
+
+  button.setAttribute(
+    'aria-label',
+    'Revenir au cadrage initial de la carte'
+  );
+
+  button.addEventListener('click', () => {
+    leafletMap.setView([25, 10], 2, {
+      animate: false
+    });
+  });
+
+  container.appendChild(button);
+
+  // Évite de déplacer ou zoomer la carte
+  // en interagissant avec le bouton.
+  L.DomEvent.disableClickPropagation(container);
+  L.DomEvent.disableScrollPropagation(container);
+
+  return container;
+};
+
+homeControl.addTo(map);
+
+// ---------- Carte en plein écran ----------
+const fullscreenMapEl = map.getContainer();
+
+if (
+  document.fullscreenEnabled &&
+  typeof fullscreenMapEl.requestFullscreen === 'function'
+) {
+  const fullscreenControl = L.control({
+    position: 'topleft'
+  });
+
+  fullscreenControl.onAdd = function (leafletMap) {
+    // Réutilise le style du bouton « Vue initiale ».
+    const container = L.DomUtil.create(
+      'div',
+      'leaflet-bar map-home-control'
+    );
+
+    const button = document.createElement('button');
+    button.type = 'button';
+
+    const feedback = document.createElement('div');
+    feedback.className = 'fullscreen-feedback';
+    feedback.setAttribute('role', 'status');
+    feedback.hidden = true;
+
+    function updateFullscreenButton() {
+      const isFullscreen =
+        document.fullscreenElement === fullscreenMapEl;
+
+      button.textContent = isFullscreen
+        ? '⤡ Quitter le plein écran'
+        : '⤢ Plein écran';
+
+      button.setAttribute(
+        'aria-pressed',
+        String(isFullscreen)
+      );
+
+      button.title = isFullscreen
+        ? 'Revenir à la taille normale'
+        : 'Afficher la carte en plein écran';
+
+      // Informe Leaflet que la taille de la carte a changé.
+      window.requestAnimationFrame(() => {
+        leafletMap.invalidateSize({
+          animate: false,
+          pan: false
+        });
       });
     }
-  });
-  borderLayer = L.geoJSON(data, { pane: 'borderPane', interactive: false, style: borderStyle });
+
+    button.addEventListener('click', async () => {
+      if (button.disabled) return;
+
+      button.disabled = true;
+      feedback.hidden = true;
+      feedback.textContent = '';
+
+      try {
+        if (document.fullscreenElement === fullscreenMapEl) {
+          await document.exitFullscreen();
+        } else {
+          await fullscreenMapEl.requestFullscreen();
+        }
+      } catch (error) {
+        feedback.textContent =
+          'Le changement de plein écran a été refusé.';
+        feedback.hidden = false;
+
+        console.warn('Plein écran indisponible :', error);
+      } finally {
+        button.disabled = false;
+        updateFullscreenButton();
+      }
+    });
+
+    container.append(button, feedback);
+
+    L.DomEvent.disableClickPropagation(container);
+    L.DomEvent.disableScrollPropagation(container);
+
+    document.addEventListener(
+      'fullscreenchange',
+      updateFullscreenButton
+    );
+
+    // Nettoyage si ce contrôle est retiré de la carte.
+    fullscreenControl.onRemove = function () {
+      document.removeEventListener(
+        'fullscreenchange',
+        updateFullscreenButton
+      );
+    };
+
+    updateFullscreenButton();
+
+    return container;
+  };
+
+  fullscreenControl.addTo(map);
 }
 
-function buildTimezones(data) {
-  for (const f of data.features) {
-    const p = f.properties || {};
-    f._desc = (p.tz_name1st && tzValid(p.tz_name1st)) ? { tz: p.tz_name1st } : { fixed: Number(p.zone) || 0 };
+        map.on('zoomend', updateLayers);
+        setupMapViewPersistence();
+
+      }
+
+      // ---------- Rafraîchissement ----------
+
+      function refresh(forceInputs = false) {
+        now = virtualNow();
+
+        // Les résultats horaires sont recalculés à chaque rafraîchissement.
+        snapshots.clear();
+
+        syncInputs(forceInputs);
+
+        if (geoLayer) {
+          geoLayer.setStyle(styleFor);
+
+          for (const layer of countryLayers) {
+            layer.setTooltipContent(
+              countryTooltip(layer.feature.id)
+            );
+          }
+        }
+
+        if (borderLayer) {
+          borderLayer.setStyle(borderStyle);
+        }
+
+        if (tzLayer) {
+          tzLayer.setStyle(tzStyle);
+
+          for (const layer of timezoneLayers) {
+            layer.setTooltipContent(
+              timezoneTooltip(layer.feature)
+            );
+          }
+        }
+
+        renderList();
+        renderInfo();
+
+        const reference = infoFor(
+          referenceDescriptor(),
+          referenceName()
+        );
+
+        statusEl.textContent =
+          'Référence : ' + referenceName() +
+          ' — ' + reference.time +
+          ' le ' + reference.date +
+          ' (' + reference.utc + ')' +
+          (simulated
+            ? ' — simulation en cours.'
+            : ' — heure réelle.') +
+          ' Actualisation automatique à chaque changement de minute.';
+          renderFavorites();
+
+        lastMinute = Math.floor(now.getTime() / 60000);
+        savePreferences();
+
+      }
+
+// ---------- Préférences locales ----------
+const PREFERENCES_KEY = 'horloge-mondiale.preferences.v1';
+let lastPreferencesJSON = '';
+
+function savePreferences() {
+  try {
+    const value = JSON.stringify({
+      version: 1,
+      refIso,
+      refZone,
+      refLabel: refZone ? refLabel : null,
+      mode
+    });
+
+    // Ne réécrit les données que si les préférences ont changé.
+    if (value === lastPreferencesJSON) return;
+
+    window.localStorage.setItem(PREFERENCES_KEY, value);
+    lastPreferencesJSON = value;
+  } catch {
+    // Un stockage indisponible ne doit pas bloquer l’application.
   }
-  tzLayer = L.geoJSON(data, {
-    pane: 'tzPane',
-    style: tzStyle,
-    onEachFeature: (feature, layer) => {
-      tzLayers.push(layer);
-      layer.bindTooltip(tzTooltipHtml(feature), { permanent: true, direction: 'center', className: 'tz-label' });
-      layer.on({
-        mouseover: e => { infoCtl.updateZone(feature); e.target.setStyle({ weight: 2.5, color: '#333' }); },
-        mouseout: e => { infoCtl.update(); tzLayer.resetStyle(e.target); }
-      });
+}
+
+function restorePreferences() {
+  try {
+    const saved = JSON.parse(
+      window.localStorage.getItem(PREFERENCES_KEY)
+    );
+
+    if (!saved || saved.version !== 1) return;
+
+    // Vérifie que le pays existe encore dans les données.
+    if (
+      typeof saved.refIso === 'string' &&
+      Object.prototype.hasOwnProperty.call(COUNTRIES, saved.refIso)
+    ) {
+      refIso = saved.refIso;
     }
-  });
-}
 
-function detailOn() {
-  return !!tzLayer && (mode === 'tz' || (mode === 'auto' && map.getZoom() >= DETAIL_ZOOM));
-}
-function updateLayers() {
-  if (!geoLayer) return;
-  if (detailOn()) {
-    if (map.hasLayer(geoLayer)) map.removeLayer(geoLayer);
-    if (!map.hasLayer(tzLayer)) tzLayer.addTo(map);
-    if (!map.hasLayer(borderLayer)) borderLayer.addTo(map);
-  } else {
-    if (tzLayer && map.hasLayer(tzLayer)) map.removeLayer(tzLayer);
-    if (borderLayer && map.hasLayer(borderLayer)) map.removeLayer(borderLayer);
-    if (!map.hasLayer(geoLayer)) geoLayer.addTo(map);
+    const zone = saved.refZone;
+
+    if (zone && typeof zone === 'object') {
+      if (typeof zone.tz === 'string' && tzValid(zone.tz)) {
+        refZone = { tz: zone.tz };
+      } else if (
+        Number.isFinite(zone.fixed) &&
+        Math.abs(zone.fixed) <= 24
+      ) {
+        refZone = {
+          fixed: Math.round(zone.fixed * 60) / 60
+        };
+      }
+    }
+
+    if (refZone) {
+      const savedLabel = typeof saved.refLabel === 'string'
+        ? saved.refLabel.trim().slice(0, 120)
+        : '';
+
+      refLabel = savedLabel || refZone.tz ||
+        fmtUtc(Math.round(refZone.fixed * 60));
+    }
+
+    if (['auto', 'country', 'tz'].includes(saved.mode)) {
+      mode = saved.mode;
+    }
+  } catch {
+    // Des préférences absentes ou invalides sont simplement ignorées.
   }
-  map.getContainer().classList.toggle('show-labels', map.getZoom() >= DETAIL_ZOOM);
 }
-map.on('zoomend', updateLayers);
 
-// ---------- Interface ----------
-const selectEl = document.getElementById('country');
-const timeEl = document.getElementById('time');
-const modeEl = document.getElementById('mode');
-const statusEl = document.getElementById('status');
-const listEl = document.getElementById('list');
-const searchEl = document.getElementById('search');
+// ---------- Pays favoris ----------
+const FAVORITES_KEY = 'horloge-mondiale.favorites.v1';
 
-Object.entries(COUNTRIES)
-  .sort((a, b) => a[1][0].localeCompare(b[1][0], 'fr'))
-  .forEach(([iso, [name]]) => {
-    const opt = document.createElement('option');
-    opt.value = iso; opt.textContent = name;
-    selectEl.appendChild(opt);
-  });
-selectEl.value = refIso;
+const favoriteCountries = new Set();
 
-function setReference(iso) { refIso = iso; selectEl.value = iso; refresh(); }
+const favoriteToggleEl =
+  document.getElementById('toggleFavorite');
 
-document.getElementById('form').addEventListener('submit', e => {
-  e.preventDefault();
-  refIso = selectEl.value;
-  const [h, m] = timeEl.value.split(':').map(Number);
-  const real = parts(new Date(), COUNTRIES[refIso][1]);
-  let diffMin = (h * 60 + m) - (real.hour * 60 + real.minute);
-  if (diffMin > 720) diffMin -= 1440;
-  if (diffMin < -720) diffMin += 1440;
-  delta = diffMin * 60000;
-  refresh();
-});
-document.getElementById('reset').addEventListener('click', () => { delta = 0; refresh(); });
-modeEl.addEventListener('change', () => { mode = modeEl.value; updateLayers(); });
-searchEl.addEventListener('input', renderList);
+const favoritesListEl =
+  document.getElementById('favoritesList');
 
-function renderList() {
-  const q = searchEl.value.trim().toLowerCase();
-  const items = Object.keys(COUNTRIES).map(info)
-    .filter(i => !q || i.name.toLowerCase().includes(q))
-    .sort((a, b) => a.diff - b.diff || a.name.localeCompare(b.name, 'fr'));
-  listEl.innerHTML = items.map(i => `
-    <div class="card ${i.iso === refIso ? 'ref' : ''}" data-iso="${i.iso}" style="border-left-color:${colorFor(i.diff)}">
-      <div class="name" title="${i.name}">${i.name}</div>
-      <div class="time">${i.time}</div>
-      <div class="diff">${formatDiff(i.diff)}${i.day ? ' · ' + i.day : ''}</div>
-    </div>`).join('');
-}
-listEl.addEventListener('click', e => {
-  const card = e.target.closest('.card');
-  if (card) { setReference(card.dataset.iso); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-});
+const favoritesFeedbackEl =
+  document.getElementById('favoritesFeedback');
 
-// ---------- Rafraîchissement ----------
-function refresh() {
-  now = virtualNow();
-  const ref = info(refIso);
-  if (document.activeElement !== timeEl) timeEl.value = ref.time;
+// Charge uniquement des codes de pays connus.
+try {
+  const saved = JSON.parse(
+    window.localStorage.getItem(FAVORITES_KEY) || '[]'
+  );
 
-  if (geoLayer) {
-    geoLayer.setStyle(styleFor);
-    for (const iso in layersByIso) layersByIso[iso].setTooltipContent(tooltipHtml(iso));
+  if (Array.isArray(saved)) {
+    for (const iso of saved) {
+      if (
+        typeof iso === 'string' &&
+        Object.prototype.hasOwnProperty.call(COUNTRIES, iso)
+      ) {
+        favoriteCountries.add(iso);
+      }
+    }
   }
-  if (borderLayer) borderLayer.setStyle(borderStyle);
-  if (tzLayer) {
-    tzLayer.setStyle(tzStyle);
-    for (const l of tzLayers) l.setTooltipContent(tzTooltipHtml(l.feature));
-  }
-  renderList();
-
-  const simul = delta !== 0
-    ? ` — heure simulée (${formatDiff(delta / 3600000)} par rapport à l'heure réelle)`
-    : ' — heure réelle';
-  statusEl.textContent = `Référence : ${ref.name}, ${ref.time} le ${ref.date}${simul}. Mise à jour automatique chaque minute.`;
-  lastMinute = Math.floor(now.getTime() / 60000);
+} catch {
+  // Des données invalides ou un stockage indisponible
+  // ne doivent pas empêcher l’application de fonctionner.
 }
-// ---------- Chargement des données ----------
-(function () {
-  const st = document.getElementById('status'), tst = document.getElementById('tzstatus');
-  const c = window.WORLD_GEOJSON;
-  if (!c || !c.features) {
-    st.textContent = '❌ countries.geo.js absent ou sans le préfixe "window.WORLD_GEOJSON =" (voir console F12).';
+
+function saveFavorites() {
+  try {
+    window.localStorage.setItem(
+      FAVORITES_KEY,
+      JSON.stringify([...favoriteCountries])
+    );
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function renderFavorites() {
+  if (!favoriteToggleEl || !favoritesListEl) return;
+
+  // Les favoris de cette étape concernent les pays,
+  // pas les références personnalisées de fuseaux horaires.
+  const countrySelected = !refZone && !!COUNTRIES[refIso];
+
+  const isFavorite =
+    countrySelected && favoriteCountries.has(refIso);
+
+  favoriteToggleEl.disabled = !countrySelected;
+
+  favoriteToggleEl.setAttribute(
+    'aria-pressed',
+    String(isFavorite)
+  );
+
+  favoriteToggleEl.textContent = !countrySelected
+    ? 'Choisis un pays pour l’ajouter aux favoris'
+    : isFavorite
+      ? '★ Retirer ce pays des favoris'
+      : '☆ Ajouter ce pays aux favoris';
+
+  // Conserve le focus clavier pendant une actualisation.
+  const focusedElement = document.activeElement;
+
+  const focusedIso = favoritesListEl.contains(focusedElement)
+    ? focusedElement.dataset.favoriteIso
+    : null;
+
+  favoritesListEl.replaceChildren();
+
+  const countries = [...favoriteCountries]
+    .filter(iso =>
+      Object.prototype.hasOwnProperty.call(COUNTRIES, iso)
+    )
+    .sort((a, b) =>
+      COUNTRIES[a][0].localeCompare(COUNTRIES[b][0], 'fr')
+    );
+
+  if (countries.length === 0) {
+    const empty = document.createElement('p');
+    empty.textContent = 'Aucun pays favori pour le moment.';
+    favoritesListEl.appendChild(empty);
     return;
   }
-  const t = window.TZ_GEOJSON;
-  if (t && t.features) buildTimezones(t);
-  else tst.textContent = '⚠ Fuseaux détaillés non chargés : ajoute timezones.geo.js (avec "window.TZ_GEOJSON =" en tête). Les pays utilisent l\'heure de leur capitale.';
-  buildCountries(c);
-  updateLayers();
-  refresh();
-})();
 
-setInterval(() => {
-  if (Math.floor(virtualNow().getTime() / 60000) !== lastMinute) refresh();
-}, 1000);
+  for (const iso of countries) {
+    const country = info(iso);
+    const button = document.createElement('button');
+
+    button.type = 'button';
+    button.className = 'favorite-chip';
+    button.dataset.favoriteIso = iso;
+
+    button.textContent =
+      `${country.name} · ${country.time}`;
+
+    button.title =
+      `Choisir ${country.name} comme référence`;
+
+    button.setAttribute(
+      'aria-pressed',
+      String(countrySelected && iso === refIso)
+    );
+
+    favoritesListEl.appendChild(button);
+
+    if (iso === focusedIso) {
+      button.focus({ preventScroll: true });
+    }
+  }
+}
+
+favoriteToggleEl?.addEventListener('click', () => {
+  if (refZone || !COUNTRIES[refIso]) return;
+
+  if (favoriteCountries.has(refIso)) {
+    favoriteCountries.delete(refIso);
+  } else {
+    favoriteCountries.add(refIso);
+  }
+
+  const saved = saveFavorites();
+
+  renderFavorites();
+
+  favoritesFeedbackEl.textContent = saved
+    ? 'Liste des favoris enregistrée.'
+    : 'Favoris modifiés pour cette session seulement : ' +
+      'le stockage local est indisponible.';
+});
+
+favoritesListEl?.addEventListener('click', event => {
+  const button = event.target.closest(
+    'button[data-favorite-iso]'
+  );
+
+  if (!button || !favoritesListEl.contains(button)) return;
+
+  const iso = button.dataset.favoriteIso;
+
+  if (!COUNTRIES[iso]) return;
+
+  pinnedInfo = { type: 'country', iso };
+  activeInfo = pinnedInfo;
+
+  setReference(iso);
+});
+// ---------- Choix direct du fuseau ----------
+function setupZonePicker() {
+  const input = document.getElementById('preciseZone');
+  const suggestions = document.getElementById('supportedZones');
+  const button = document.getElementById('applyPreciseZone');
+  const feedback = document.getElementById('preciseZoneFeedback');
+
+  if (!input || !suggestions || !button || !feedback) return;
+
+  const zones = new Set(['UTC']);
+
+  // Utilise les fuseaux connus du navigateur si possible.
+  try {
+    if (typeof Intl.supportedValuesOf === 'function') {
+      for (const zone of Intl.supportedValuesOf('timeZone')) {
+        zones.add(zone);
+      }
+    }
+  } catch {
+    // Les fuseaux des pays restent disponibles en solution de repli.
+  }
+
+  // Ajoute aussi les identifiants déjà utilisés par l’application.
+  for (const [, zone] of Object.values(COUNTRIES)) {
+    if (tzValid(zone)) {
+      zones.add(zone);
+    }
+  }
+
+  const currentZone = referenceDescriptor().tz;
+
+  if (currentZone && tzValid(currentZone)) {
+    zones.add(currentZone);
+  }
+
+  try {
+    const deviceZone =
+      new Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    if (tzValid(deviceZone)) {
+      zones.add(deviceZone);
+    }
+  } catch {
+    // L’absence de fuseau d’appareil ne bloque pas le sélecteur.
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  for (const zone of [...zones].sort()) {
+    const option = document.createElement('option');
+
+    option.value = zone;
+    option.label = zone.replace(/_/g, ' ');
+
+    fragment.appendChild(option);
+  }
+
+  suggestions.replaceChildren(fragment);
+
+  function applyZone() {
+    const requestedZone = input.value.trim();
+
+    if (!requestedZone || !tzValid(requestedZone)) {
+      feedback.textContent =
+        'Choisis un fuseau reconnu, par exemple Europe/Paris ' +
+        'ou America/Chicago.';
+
+      input.focus();
+      return;
+    }
+
+    // Efface l’ancien lieu épinglé dans le panneau de la carte.
+    pinnedInfo = null;
+    activeInfo = null;
+
+    setReferenceZone(
+      { tz: requestedZone },
+      requestedZone.replace(/_/g, ' ')
+    );
+
+    input.value = requestedZone;
+
+    feedback.textContent =
+      `Référence choisie : ${requestedZone}. ` +
+      'Le même instant est conservé ; les heures locales ' +
+      'et les décalages sont recalculés.';
+  }
+
+  button.addEventListener('click', applyZone);
+
+  input.addEventListener('input', () => {
+    feedback.textContent = '';
+  });
+
+  input.addEventListener('keydown', event => {
+    if (
+      event.key === 'Enter' &&
+      !event.isComposing
+    ) {
+      event.preventDefault();
+      applyZone();
+    }
+  });
+}
+// ---------- Mémorisation du cadrage de la carte ----------
+function setupMapViewPersistence() {
+  if (!map) return;
+
+  const storageKey = 'horloge-mondiale.map-view.v1';
+
+  // Restaure un cadrage uniquement si les valeurs sont valides.
+  try {
+    const saved = JSON.parse(
+      window.localStorage.getItem(storageKey) || 'null'
+    );
+
+    const validView =
+      saved?.version === 1 &&
+      Array.isArray(saved.center) &&
+      saved.center.length === 2 &&
+      saved.center.every(value => Number.isFinite(value)) &&
+      Math.abs(saved.center[0]) <= 85 &&
+      Math.abs(saved.center[1]) <= 200 &&
+      Number.isFinite(saved.zoom) &&
+      saved.zoom >= map.getMinZoom() &&
+      saved.zoom <= map.getMaxZoom();
+
+    if (validView) {
+      map.setView(saved.center, saved.zoom, {
+        animate: false
+      });
+    }
+  } catch {
+    // Un cadrage absent, invalide ou inaccessible
+    // ne doit pas bloquer le chargement de la carte.
+  }
+
+  function saveMapView() {
+    try {
+      const center = map.getCenter();
+
+      const view = {
+        version: 1,
+        center: [center.lat, center.lng],
+        zoom: map.getZoom()
+      };
+
+      window.localStorage.setItem(
+        storageKey,
+        JSON.stringify(view)
+      );
+    } catch {
+      // La carte reste utilisable sans sauvegarde.
+    }
+  }
+
+  // Sauvegarde à la fin d’un déplacement ou d’un zoom,
+  // plutôt qu’à chaque mouvement de la souris.
+  map.on('moveend', saveMapView);
+}
+
+      // ---------- Démarrage ----------
+
+      function boot() {
+        const unsupported = [];
+        // ---------- Export des heures ----------
+function exportCountriesCSV() {
+  const feedback = document.getElementById('exportFeedback');
+
+  try {
+    // Actualise les heures avant de préparer le fichier.
+    refresh();
+
+    // Conserve le même ordre et les mêmes pays que dans la liste.
+    const countries = Array.from(
+      document.querySelectorAll('#list .card[data-iso]')
+    )
+      .map(card => card.dataset.iso)
+      .filter(iso =>
+        Object.prototype.hasOwnProperty.call(COUNTRIES, iso)
+      )
+      .map(iso => info(iso));
+
+    if (countries.length === 0) {
+      feedback.textContent =
+        'Aucun pays à exporter. Modifie ta recherche.';
+      return;
+    }
+
+    const reference = infoFor(
+      referenceDescriptor(),
+      referenceName()
+    );
+
+    const referenceText =
+      `${reference.name} — ${reference.date} ` +
+      `${reference.time} (${reference.utc})`;
+
+    const rows = [
+      [
+        'Pays',
+        'Code ISO',
+        'Date locale',
+        'Heure locale',
+        'Fuseau horaire',
+        'Décalage UTC',
+        'Écart avec la référence',
+        'Référence utilisée'
+      ],
+      ...countries.map(country => [
+        country.name,
+        country.iso,
+        country.date,
+        country.time,
+        country.tz,
+        country.utc,
+        formatDiff(country.diff),
+        referenceText
+      ])
+    ];
+
+    function csvCell(value) {
+      let text = String(value ?? '');
+
+      // Évite de transformer un texte en formule de tableur.
+      if (
+        /^\s*[=+\-@]/.test(text) ||
+        /^[\t\r\n]/.test(text)
+      ) {
+        text = "'" + text;
+      }
+
+      return '"' + text.replace(/"/g, '""') + '"';
+    }
+
+    const csv = rows
+      .map(row => row.map(csvCell).join(';'))
+      .join('\r\n');
+
+    const blob = new Blob(
+      ['\uFEFF', csv],
+      { type: 'text/csv;charset=utf-8;' }
+    );
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download =
+      `horloge-mondiale-${reference.dateISO}.csv`;
+
+    document.body.appendChild(link);
+
+    try {
+      link.click();
+    } finally {
+      link.remove();
+
+      // Libère l’URL après avoir laissé démarrer le téléchargement.
+      window.setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 60000);
+    }
+
+    feedback.textContent =
+      `Export préparé : ${countries.length} pays ou territoires.`;
+  } catch (error) {
+    console.error('Erreur pendant l’export CSV :', error);
+
+    feedback.textContent =
+      'Impossible de préparer le fichier CSV. ' +
+      'Les heures affichées restent disponibles.';
+  }
+}
+
+document.getElementById('exportCsv')
+  ?.addEventListener('click', exportCountriesCSV);
+
+
+        for (const iso of Object.keys(COUNTRIES)) {
+          if (!tzValid(COUNTRIES[iso][1])) {
+            unsupported.push(COUNTRIES[iso][0]);
+            delete COUNTRIES[iso];
+          }
+        }
+
+        if (!Object.keys(COUNTRIES).length) {
+          throw new Error(
+            'Aucun fuseau du projet n’est reconnu par cet environnement.'
+          );
+        }
+
+        if (!COUNTRIES[refIso]) {
+          refIso = Object.keys(COUNTRIES)[0];
+        }
+
+        if (unsupported.length) {
+          window.reportClockProblem(
+            'Certains fuseaux ne sont pas reconnus par cet environnement : ' +
+            unsupported.join(', ') + '.'
+          );
+        }
+
+        const stylesheet = document.querySelector(
+          'link[rel="stylesheet"][href="leaflet.css"]'
+        );
+
+        if (!stylesheet?.sheet) {
+          window.reportClockProblem(
+            'leaflet.css est absent ou non chargé. L’affichage de la carte peut être incorrect.'
+          );
+        }
+
+       restorePreferences();
+modeEl.value = mode;
+setupInterface();
+setupZonePicker();
+
+        refresh(true);
+
+        try {
+          initializeMap();
+        } catch (error) {
+          window.reportClockProblem(
+            'Initialisation de la carte : ' + error.message
+          );
+        }
+
+        refresh(true);
+
+        setInterval(() => {
+          const minute = Math.floor(
+            virtualNow().getTime() / 60000
+          );
+
+          if (minute !== lastMinute) {
+            refresh();
+          }
+        }, 1000);
+
+        // Reprend immédiatement après un retour dans l’application.
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden) refresh();
+        });
+
+        window.addEventListener('focus', () => refresh());
+      }
+
+      try {
+        boot();
+      } catch (error) {
+        statusEl.textContent =
+          'Le démarrage de l’application a rencontré un problème.';
+
+        window.reportClockProblem(
+          error.message || String(error)
+        );
+      }
+    })();
+  </script>
+  <script>
+(() => {
+  'use strict';
+
+  const STORAGE_KEY = 'horloge-mondiale.theme.v1';
+  const root = document.documentElement;
+  const button = document.getElementById('themeToggle');
+
+  if (!button) return;
+
+  const systemTheme = window.matchMedia(
+    '(prefers-color-scheme: dark)'
+  );
+
+  let chosenTheme = null;
+
+  // Récupère le choix enregistré, s’il existe.
+  try {
+    const savedTheme = window.localStorage.getItem(STORAGE_KEY);
+
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      chosenTheme = savedTheme;
+    }
+  } catch {
+    // Le thème reste utilisable si le stockage est indisponible.
+  }
+
+  function applyTheme(theme) {
+    const dark = theme === 'dark';
+
+    root.dataset.theme = theme;
+
+    button.setAttribute('aria-pressed', String(dark));
+    button.title = dark
+      ? 'Désactiver le mode sombre'
+      : 'Activer le mode sombre';
+  }
+
+  // Sans choix enregistré, suit la préférence de l’appareil.
+  applyTheme(
+    chosenTheme || (systemTheme.matches ? 'dark' : 'light')
+  );
+
+  button.addEventListener('click', () => {
+    chosenTheme = root.dataset.theme === 'dark'
+      ? 'light'
+      : 'dark';
+
+    applyTheme(chosenTheme);
+
+    try {
+      window.localStorage.setItem(STORAGE_KEY, chosenTheme);
+    } catch {
+      // Un refus de stockage ne bloque pas le changement de thème.
+    }
+  });
+
+  // Suit les changements du système tant que l’utilisateur
+  // n’a pas choisi lui-même un thème.
+  systemTheme.addEventListener('change', event => {
+    if (chosenTheme === null) {
+      applyTheme(event.matches ? 'dark' : 'light');
+    }
+  });
+})();
 </script>
+<script>
+(() => {
+  'use strict';
+
+  const searchInput = document.getElementById('search');
+
+  if (!searchInput) return;
+
+  // Ajoute un nom accessible si aucun libellé n’est déjà présent.
+  if (
+    !searchInput.labels?.length &&
+    !searchInput.hasAttribute('aria-label') &&
+    !searchInput.hasAttribute('aria-labelledby')
+  ) {
+    searchInput.setAttribute(
+      'aria-label',
+      'Rechercher un pays ou un territoire'
+    );
+  }
+
+  // Affiche une aide sous le champ de recherche.
+  const helpId = 'searchKeyboardHelp';
+  let help = document.getElementById(helpId);
+
+  if (!help) {
+    help = document.createElement('p');
+    help.id = helpId;
+    help.className = 'search-keyboard-help';
+
+    help.textContent =
+      'Ctrl + K : accéder à la recherche · ' +
+      'Échap : effacer la recherche.';
+
+    searchInput.insertAdjacentElement('afterend', help);
+  }
+
+  // Conserve les éventuelles descriptions déjà associées au champ.
+  const descriptions = new Set(
+    (searchInput.getAttribute('aria-describedby') || '')
+      .split(/\s+/)
+      .filter(Boolean)
+  );
+
+  descriptions.add(helpId);
+
+  searchInput.setAttribute(
+    'aria-describedby',
+    [...descriptions].join(' ')
+  );
+
+  document.addEventListener('keydown', event => {
+    // N’interrompt pas une saisie en cours de composition
+    // ni l’utilisation de la carte en plein écran.
+    if (
+      event.defaultPrevented ||
+      event.isComposing ||
+      document.fullscreenElement
+    ) {
+      return;
+    }
+
+    const focused = document.activeElement;
+
+    const editing =
+      focused instanceof HTMLElement &&
+      (
+        focused.isContentEditable ||
+        focused.matches('input, textarea, select')
+      );
+
+    const searchShortcut =
+      (event.ctrlKey || event.metaKey) &&
+      !event.altKey &&
+      !event.shiftKey &&
+      event.key.toLowerCase() === 'k';
+
+    // Ne détourne pas le raccourci pendant la modification
+    // d’un autre champ, comme la date ou l’heure.
+    if (
+      searchShortcut &&
+      (!editing || focused === searchInput)
+    ) {
+      event.preventDefault();
+
+      searchInput.focus();
+      searchInput.select();
+
+      return;
+    }
+
+    // Échap efface uniquement la recherche lorsqu’elle a le focus.
+    if (
+      event.key === 'Escape' &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      focused === searchInput &&
+      searchInput.value !== ''
+    ) {
+      event.preventDefault();
+
+      searchInput.value = '';
+
+      // Réutilise le filtrage déjà présent dans l’application.
+      searchInput.dispatchEvent(
+        new Event('input', { bubbles: true })
+      );
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
