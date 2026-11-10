@@ -636,6 +636,7 @@ html[data-theme="dark"] .zone-picker input {
 }
 
   </style>
+  <link rel="icon" href="/PDP.ico?v=2">
 </head>
 
 <body>
@@ -866,6 +867,46 @@ html[data-theme="dark"] .zone-picker input {
       </p>
     </section>
   </main>
+<!-- Reprise des préférences enregistrées sous l’ancien nom. -->
+<script>
+(() => {
+  'use strict';
+
+  const previousPrefix = 'horloge-mondiale';
+  const currentPrefix = 'chronoatlas';
+
+  const settings = [
+    'preferences.v1',
+    'favorites.v1',
+    'map-view.v1',
+    'theme.v1'
+  ];
+
+  for (const setting of settings) {
+    try {
+      const currentKey = `${currentPrefix}.${setting}`;
+
+      // Ne remplace jamais un réglage ChronoAtlas déjà enregistré.
+      if (window.localStorage.getItem(currentKey) !== null) {
+        continue;
+      }
+
+      const previousKey = `${previousPrefix}.${setting}`;
+      const previousValue =
+        window.localStorage.getItem(previousKey);
+
+      if (previousValue !== null) {
+        window.localStorage.setItem(
+          currentKey,
+          previousValue
+        );
+      }
+    } catch {
+      // Un stockage indisponible ne bloque pas l’application.
+    }
+  }
+})();
+</script>
 
   <!-- Diagnostic indépendant du script principal. -->
   <script>
